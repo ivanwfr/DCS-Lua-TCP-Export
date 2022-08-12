@@ -1,9 +1,9 @@
 --------------------------------------------------------------------------------
--- Export_TEST_STUB.lua  in [Saved Games/DCS/Scripts] -- _TAG (220810:00h:53) --
+-- Export_TEST_STUB.lua  in [Saved Games/DCS/Scripts] -- _TAG (220813:00h:44) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST_STUB.lua")
 
-local MAX_COROUTINE_DURATION_SEC = 3
+local MAX_COROUTINE_DURATION_SEC = 6
 local script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
 
 -- COROUTINES STUBS
@@ -117,9 +117,14 @@ end --}}}
 
 --[[ vim
     :only
-    :update|     terminal   luae Export_LISTEN.lua
+    :update|vert terminal   luae Export_LISTEN.lua
     :update|     terminal   luae Export_TEST.lua    TESTING
     :update|     terminal   luae Export_TEST.lua    TERMINATING
+" Windows Terminal
+    :update|!start /b    wt luae Export_LISTEN.lua  COLORED
+    :update|!start /b       luae Export_TEST.lua    TESTING
+    :update|!start /b       luae Export_TEST.lua    TERMINATING
+
 
 :e Export.lua
 :e Export_task.lua

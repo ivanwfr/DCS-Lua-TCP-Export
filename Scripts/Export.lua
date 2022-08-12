@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export.lua ---------- in [Saved Games/DCS/Scripts] -- _TAG (220810:00h:52) --
+-- Export.lua ---------- in [Saved Games/DCS/Scripts] -- _TAG (220812:23h:45) --
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -19,9 +19,13 @@ function LuaExportStop             ( )                                 Export_ta
 
 --[[ vim
     :only
-    :update|     terminal   luae Export_LISTEN.lua
+    :update|vert terminal   luae Export_LISTEN.lua
     :update|     terminal   luae Export_TEST.lua    TESTING
     :update|     terminal   luae Export_TEST.lua    TERMINATING
+" Windows Terminal
+    :update|!start /b    wt luae Export_LISTEN.lua  COLORED
+    :update|!start /b       luae Export_TEST.lua    TESTING
+    :update|!start /b       luae Export_TEST.lua    TERMINATING
 
 "  Export.lua
 :e Export_task.lua
