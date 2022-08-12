@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220812:23h:45) --
+-- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220813:01h:25) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_log.lua")
 
@@ -26,7 +26,7 @@ function Export_log(line)
     -- [log_file ../Logs/Export.log] {{{
     if not log_file_name then
         log_file_name   = script_dir.."/../Logs/Export.log"
-        log_file        = io.open(log_file_name, "a") -- append to log_file
+        log_file        = io.open(log_file_name, "w") -- override log_file
     end
     --}}}
     if  log_file then
