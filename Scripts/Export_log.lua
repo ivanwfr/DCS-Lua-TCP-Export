@@ -27,11 +27,6 @@ function Export_log(line)
     if not log_file_name then
         log_file_name   = script_dir.."/../Logs/Export.log"
         log_file        = io.open(log_file_name, "a") -- append to log_file
---      if log_file then
---          local msg     = "Export_log: .. io.open(log_file_name=["..log_file_name.."]) .. ["..log_time().."]"
---          log_file:write(msg.."\n")
---
---      end
     end
     --}}}
     if  log_file then
