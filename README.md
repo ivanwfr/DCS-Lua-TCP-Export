@@ -4,19 +4,21 @@
 
 ### ✔ [ZIP archive on GitHub](../../archive/master.zip)
 
-## `README.md` _TAG (220810:23h:07)
+## `README.md` _TAG (220813:01h:12)
 <!--
 }!!tree --dirsfirst          | sed -e 's/^/    /'
 }!!tree --dirsfirst Scripts/ | sed -e 's/^/    /'
 -->
 ```
     .
-    |-- Scripts -> %USERPROFILE%\Saved\ Games\DCS\Scripts
     |-- Logs    -> %USERPROFILE%\Saved\ Games\DCS\Logs
+    |-- Scripts -> %USERPROFILE%\Saved\ Games\DCS\Scripts
     `-- README.md
 
-    Scripts/
-    |-- LuaSocket -> DCS_World_INSTALLDIR/LuaSocket
+    Scripts
+    |-- lib
+    |   |-- JSON.lua
+    |   `-- socket.lua
     |-- Export.lua
     |-- Export_LISTEN.lua
     |-- Export_LISTEN_Windows_Terminal.lnk
@@ -25,6 +27,9 @@
     |-- Export_log.lua
     |-- Export_socket.lua
     |-- Export_task.lua
-    `-- check_termios.lua
+    |-- check_JSON.lua
+    |-- check_termios.lua
+    |-- desktop.ini
+    `-- wt.bat
 
 ```
