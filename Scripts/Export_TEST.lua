@@ -5,6 +5,13 @@ print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
   TESTING        = arg and arg[1] and (arg[1] == "TESTING"    )
   TERMINATING    = arg and arg[1] and (arg[1] == "TERMINATING")
+  if not TESTING and not TERMINATING then
+      print("USAGE:")
+      print(" "..arg[0].." TESTING")
+      print("or")
+      print(" "..arg[0].." TERMINATING")
+      return(1)
+  end
   ACTIVITY_COUNT = 5
 
 --- TEST DATA 
@@ -29,7 +36,7 @@ print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 --{{{
 
     function LoGetModelTime   () ModelTime = ModelTime+1; return ModelTime         end
-    function LoGetWorldObjects() print("XXX");            return TEST_WORLDOBJECTS end
+    function LoGetWorldObjects()                          return TEST_WORLDOBJECTS end
 
 --}}}
 
@@ -42,8 +49,6 @@ if TESTING then
     print("-------------------------------------------------------------------")
 
     dofile("Export_TEST_STUB.lua")
-
-    print(' x [dofile("Export.lua")]')
     dofile("Export.lua"    )
 
     LuaExportStart()
@@ -79,8 +84,8 @@ if TERMINATING then
 
     socket_connect()
 
-    local       msg = "\n x Export_TEST .. TERMINATING    .. ["..log_time().."]\n"
-    Export_log(        msg)
+    local      msg = "\n x Export_TEST .. TERMINATING    .. ["..log_time().."]\n"
+    Export_log(msg)
 
     socket_send("quit")
 
