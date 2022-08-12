@@ -1,19 +1,24 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220812:03h:45) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220813:00h:21) --
 --------------------------------------------------------------------------------
--- TERMIOS {{{
-local LOG_FOLD_OPEN           = "{{{"
-local LOG_FOLD_CLOSE          = "}}}"
+print("@@@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
-local   ESC = tostring(string.char(27));
-local CLEAR = ESC.."c"
-local     R = ESC.."[1;31m"     --     RED
-local     G = ESC.."[1;32m"     --   GREEN
-local     Y = ESC.."[1;33m"     --  YELLOW
-local     B = ESC.."[1;34m"     --    BLUE
-local     M = ESC.."[1;35m"     -- MAGENTA
-local     C = ESC.."[1;36m"     --    CYAN
-local     N = ESC.."[0m"        --      NC
+local COLORED = arg and arg[1] and (arg[1] == "COLORED")
+
+-- TERMIOS {{{
+local LF             = "\n"
+local LOG_FOLD_OPEN  = "{{{"
+local LOG_FOLD_CLOSE = "}}}"
+
+local   ESC   = tostring(string.char(27));
+local CLEAR   = COLORED and (ESC.."c"     ) or "" 
+local     R   = COLORED and (ESC.."[1;31m") or "" --     RED
+local     G   = COLORED and (ESC.."[1;32m") or "" --   GREEN
+local     Y   = COLORED and (ESC.."[1;33m") or "" --  YELLOW
+local     B   = COLORED and (ESC.."[1;34m") or "" --    BLUE
+local     M   = COLORED and (ESC.."[1;35m") or "" -- MAGENTA
+local     C   = COLORED and (ESC.."[1;36m") or "" --    CYAN
+local     N   = COLORED and (ESC.."[0m"   ) or "" --      NC
 
 --}}}
 print(CLEAR..N.."  N  "..R.." R"..G.." G "..B.."B  "..C.." C"..M.." M "..Y.."Y")
@@ -67,7 +72,6 @@ end
 local   server =  assert( socket.bind(HOST , PORT))
 local ip, port = server:getsockname()
 
-local       LF = "\n"
 local msg = LF
 .."------------------------------------------------------------------------"..LF
 .."--- Export_LISTEN.lua: .. LISTENING IP="..ip.." . port=".. port          ..LF
@@ -76,7 +80,6 @@ Listen_log(msg)
 print     (msg)
 
 Listen_log( LOG_FOLD_OPEN  )
-print(B ..  LOG_FOLD_OPEN  )
 
 --}}}
 
@@ -99,11 +102,110 @@ function sleep(sec)
 
 end --}}}
 
-local JSON =  dofile("lib/JSON.lua")
+-- get_label_object_GRID {{{
+local req_count  = 0
+local req_label  = ""
+local req        = ""
+
+local REQ_LABEL_EVENT  = "EVENT"
+local REQ_LABEL_STREAM = "STREAM"
+
+local GRID_COL_MAX  = 4
+local GRID_COL_SEP  = N..".."
+local GRID_COL_SIZE = 50
+
+local GRID_CELLS = {}
+local          str = ""
+local          col = 0
+local          row = 0
+
+function get_label_object_GRID(o , pfx)
+--if pfx then str = str..LF..("@@@ get_label_object_GRID(pfx "..tostring(pfx)..")") end
+
+    if not pfx then
+        str = Y
+        row = 0
+        col = 0
+    end
+
+    for k,v in pairs(o) do
+
+        k   = pfx
+        and  (pfx.."."..k)
+        or              k
+
+--str = str..LF..("@@@ "..type(v).." k=["..k.."]"..LF)
+
+        if((type(v) == "string") or (type(v) == "number") or (type(v) == "boolean")) then
+
+            -- CELL FORMAT
+            v  = (type(v) == "number" ) and          string.format("%16.2f",          v                   )
+            or   (type(v) == "boolean") and          string.format("%16s"  ,          v and "YES" or "NO" )
+            or                                       string.format("%16s"  , tostring(v)                  )
+
+            local cell = string.format(" %-20s = %-25s ", k, v)
+
+            -- CELL ROW COL
+            col =  col + 1
+            if     col > GRID_COL_MAX then str = str..LF          ; col = 1; row = row+1
+            elseif col > 1            then str = str..GRID_COL_SEP
+            end
+
+            -- COLOR
+            local new_item   =              not  GRID_CELLS[k]
+            local same_value = not new_item and (GRID_CELLS[k].cell == cell)
+            local stream_val = req_label == REQ_LABEL_STREAM
+            local event_data = req_label == REQ_LABEL_EVENT
+
+            local color
+            =      new_item   and N
+            or    (stream_val and G or Y)
+            or    (event_data and B or C)
+            or                    N
+
+            -- CELL CACHE
+            if GRID_CELLS[k] then GRID_CELLS[k] = { cell = cell , color = color }
+            else                  GRID_CELLS[k] = { cell = cell , color = color }
+            end
+
+            str =  str..GRID_CELLS[k].color.."["..GRID_CELLS[k].cell.."]"
+        else
+            get_label_object_GRID(v, k)
+        end
+
+    end
+
+    str = string.gsub(str, "\n$", "") -- strip ending LF
+
+    return str
+end
+--}}}
+-- get_GRID_CELLS_str {{{
+function get_GRID_CELLS_str()
+
+    local str = ""
+    local col = 0
+    local row = 0
+
+    for k,v in pairs(GRID_CELLS) do
+
+            -- CELL ROW COL
+            col =  col + 1
+            if     col > GRID_COL_MAX then str = str..LF          ; col = 1; row = row+1
+            elseif col > 1            then str = str..GRID_COL_SEP
+            end
+
+            str =  str..GRID_CELLS[k].color.."["..GRID_CELLS[k].cell.."]"
+
+    end
+
+    return str
+end
+--}}}
+
+local JSON =  dofile(script_dir.."/lib/JSON.lua")
       JSON.strictTypes = true -- to support metatable
 
-local req_count  = 0
-local req        = ""
 while req       ~= QUIT do
 --{{{
     local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
@@ -116,14 +218,12 @@ while req       ~= QUIT do
         if  err then
 
             Listen_log( LOG_FOLD_CLOSE )
-            print(B ..  LOG_FOLD_CLOSE )
 
             msg = LF.."--- Export_LISTEN.lua: "..tostring(err)
             Listen_log(msg)
             print(Y .. msg)
 
             Listen_log( LOG_FOLD_OPEN  )
-            print(B ..  LOG_FOLD_OPEN  )
         ------------------------------------------------------------------------
         -- HANDLE CLIENT REQUEST -----------------------------------------------
         ------------------------------------------------------------------------
@@ -133,7 +233,6 @@ while req       ~= QUIT do
             if req == QUIT then
 
                 Listen_log( LOG_FOLD_CLOSE )
-                print(B ..  LOG_FOLD_CLOSE )
 
                 msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER"
                 Listen_log(msg)
@@ -142,37 +241,57 @@ while req       ~= QUIT do
             else
                 local     req_table = string_split(req,"\n") -- REQUEST LINES
 
-                local next_event = (string.gsub(req, "Export_task_ActivityNextEvent.*", "next_event") == "next_event")
+                local next_event
+                =  (string.gsub(req, "Export_task_ActivityNextEvent.*", "NEXT_EVENT") == "NEXT_EVENT")
+                or (string.gsub(req, "Export_task_coroutine_handle.*" , "NEXT_EVENT") == "NEXT_EVENT")
+
                 if    next_event then
-                    req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0) -- number-arg
                     Listen_log(  LOG_FOLD_CLOSE )
-                    print(CLEAR..LOG_FOLD_CLOSE )
+                    print(CLEAR)
+
+                    req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0 ) -- number-arg
+
+                    req_label =  string.find(req, "Export_task_ActivityNextEvent") and REQ_LABEL_EVENT
+                    or           string.find(req, "Export_task_coroutine_handle" ) and REQ_LABEL_STREAM
+
+
+                    msg = string.format("[%d] %s", req_count, req_label)
+                    Listen_log(   msg)
+                    print     (M..msg)
+
                 end
 
                 for i=1, #req_table do
 
+                    if((req_count > 0) and (req_count % 10 == 0)) then
+                        Listen_log("")
+                    end -- SEPARATOR
+
                     req =      req_table[i]
+--print("@@@ req=["..req.."]")
 
-                    -- SEPARATOR
-                    if((req_count > 0) and (req_count % 10 == 0)) then print() end
-
-                    msg = next_event
-                    and    string.format( "%4d | %s", req_count, tostring(req))
-                    or     string.format( "%4s | %s", ""       , tostring(req))
+                    --[[ [msg] --{{{
+                    msg = string.format("msg=[%s]", tostring(req))
                     Listen_log(msg)
                     print(G .. msg)
+                    --}}}--]]
 
-                    -- JSON
+                    ---[[ [JSON] --{{{
                     if string.find(req, "{") then
-                        local  decoded_req =       JSON:decode( req )
-                        print(" x DECODED LUA OBJECT xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-                        print(" x decoded_req: "..tostring(decoded_req))
-                        print(" - PRETTY JSON OBJECT ----------------------------------------------------------")
-                        local pretty_json_VALUE = JSON:encode_pretty(decoded_req)
-                        print(pretty_json_VALUE)
-                        print(" x xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-                    end
 
+                        local decoded_req       = JSON:decode          (        req)
+                        local        json_VALUE = JSON:encode          (decoded_req)
+                        local pretty_json_VALUE = JSON:encode_pretty   (decoded_req)
+--print("@@@ json_VALUE=["..json_VALUE.."]")
+                                                  get_label_object_GRID(decoded_req)
+                        local grid_str          = get_GRID_CELLS_str   ()
+
+                        Listen_log(pretty_json_VALUE)
+
+                        print(Y .. grid_str)
+
+                    end
+                    --}}}--]]
                 end
 
                 if next_event then
@@ -211,10 +330,13 @@ sleep(2)
 
 --[[ vim
     :only
-    :update|     terminal   luae Export_LISTEN.lua
+    :update|vert terminal   luae Export_LISTEN.lua
     :update|     terminal   luae Export_TEST.lua    TESTING
     :update|     terminal   luae Export_TEST.lua    TERMINATING
-    :!start /b                   Export_LISTEN.sh
+" Windows Terminal
+    :update|!start /b    wt luae Export_LISTEN.lua  COLORED
+    :update|!start /b       luae Export_TEST.lua    TESTING
+    :update|!start /b       luae Export_TEST.lua    TERMINATING
 
 :e Export.lua
 :e Export_task.lua

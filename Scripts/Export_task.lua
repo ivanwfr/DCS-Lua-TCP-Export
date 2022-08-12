@@ -1,11 +1,11 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220810:19h:16) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220813:00h:44) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_task.lua")
 
 -- PARAMETERS
 local ACTIVITY_START_DELAY    = 0.5
-local ACTIVITY_INTERVAL       = 0.5
+local ACTIVITY_INTERVAL       = 2.0
 
 local LF                      = "\n"
 local LOG_FOLD_OPEN           = "{{{"
@@ -13,10 +13,9 @@ local LOG_FOLD_CLOSE          = "}}}"
 
 -- ENVIRONMENT
 local  script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
-dofile(script_dir.."/Export_log.lua"   )
-dofile(script_dir.."/Export_socket.lua")
-
-local JSON =  dofile("lib/JSON.lua")
+                dofile(script_dir.."/Export_log.lua"   )
+                dofile(script_dir.."/Export_socket.lua")
+local JSON =    dofile(script_dir.."/lib/JSON.lua")
       JSON.strictTypes = true -- to support metatable
 
 -- UTIL
@@ -31,7 +30,9 @@ function get_time_and_altitude()
     = {   MTime  = MTime
     ,    SeaAlt  = SeaAlt
     ,    GndAlt  = GndAlt }
-
+--[[
+/MTime\|SeaAlt\|GndAlt
+--]]
     local json_object = JSON:encode( lua_object )
 
     local str = ""
@@ -47,6 +48,10 @@ function get_label_object_tostring(label,o)
 
     local lua_object = { label = label }
     local        str =      " "..label..":\n"
+
+    if type(o) ~= "table" then
+        return str, nil
+    end
 
     for k,v in pairs(o) do
         lua_object[ tostring(k) ] = v
@@ -67,10 +72,11 @@ print("Export_task_Start")
 
     local msg = "Export_task_Start .. socket_connect .. "..log_time()..":"..LF..LOG_FOLD_OPEN
     Export_log(msg)
-    print(msg)
+    print     (msg)
+
     local c = socket_connect()
 
-    Export_task_coroutine_start()
+    Export_task_coroutine_start() --FIXME
 
 end
 --}}}
@@ -82,31 +88,43 @@ function Export_task_AfterNextFrame() -------- SEND  frame data -------------{{{
 
 end
 --}}}
-function Export_task_ActivityNextEvent(t) ---- SEND  LoGetWorldObjects ----------- {{{
+function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------------- {{{
 
-    local msg = "Export_task_ActivityNextEvent("..t.."):"
-    Export_log(msg)
+    local       msg = "Export_task_ActivityNextEvent("..t.."):"
+    Export_log( msg)
     socket_send(msg)
     print      (msg)
 
-    local   o = LoGetWorldObjects()
-    for k,v in pairs(o) do
-        if(v.Name == "A-10C") then--FIXME
+    local    o = LoGetSelfData()
+    local json = JSON:encode( o )
+    msg        = json
+    Export_log( msg)
+    socket_send(msg)
+    print      (msg)
 
-            str, json = get_label_object_tostring("ACTIVITY["..t.."] k=["..k.."]",v)
-
-            msg   =     str
-            Export_log( msg)
-            socket_send(msg)
-            print      (msg)
-
-            msg   =     json
-            Export_log( msg)
-            socket_send(msg)
-            print      (msg)
-
-        end
-    end
+----{{{
+--    for k,v in pairs(o) do
+----      if(v.Name == "A-10C") then--FIXME
+--
+--            str, json = get_label_object_tostring("ACTIVITY["..t.."] k=["..k.."]",v)
+--
+--            --[[ SEND str  --{{{
+--            msg   =     str
+--            Export_log( msg)
+--            socket_send(msg)
+--            print      (msg)
+--            --}}}--]]
+--
+--            ---[[ SEND json --{{{
+--            msg   =     json-- or str
+--            Export_log( msg)
+--            socket_send(msg)
+--            print      (msg)
+--            --}}}--]]
+--
+----      end
+--    end
+----}}}
 
     return  t+1 -- so as to be called again
 end
@@ -134,17 +152,27 @@ function Export_task_coroutine_handle(t)
 
 repeat
 
+    local       msg = "Export_task_coroutine_handle("..t.."):"
+    Export_log( msg)
+    socket_send(msg)
+    print      (msg)
+
     str, json = get_time_and_altitude()
 
+--[[--{{{
     msg =       str
     Export_log (msg)
     print      (msg)
     socket_send(msg)
+--}}}--]]
 
+---[[--{{{
     msg   =     json
     Export_log( msg)
     socket_send(msg)
     print      (msg)
+--}}}--]]
+    local json = JSON:encode( o )
 
     t = coroutine.yield()
 
@@ -182,9 +210,13 @@ end
 
 --[[ vim
     :only
-    :update|     terminal   luae Export_LISTEN.lua
+    :update|vert terminal   luae Export_LISTEN.lua
     :update|     terminal   luae Export_TEST.lua    TESTING
     :update|     terminal   luae Export_TEST.lua    TERMINATING
+" Windows Terminal
+    :update|!start /b    wt luae Export_LISTEN.lua  COLORED
+    :update|!start /b       luae Export_TEST.lua    TESTING
+    :update|!start /b       luae Export_TEST.lua    TERMINATING
 
 :e Export.lua
 "  Export_task.lua
