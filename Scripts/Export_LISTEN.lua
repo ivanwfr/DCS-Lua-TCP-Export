@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220810:19h:28) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220812:03h:45) --
 --------------------------------------------------------------------------------
 -- TERMIOS {{{
 local LOG_FOLD_OPEN           = "{{{"
@@ -44,11 +44,6 @@ function Listen_log(line)
     if not log_file_name then
         log_file_name   = script_dir.."/../Logs/Listen.log"
         log_file        = io.open(log_file_name, "w") -- override log_file
---      if log_file then
---          local msg     = "Export_log: .. io.open(log_file_name=["..log_file_name.."]) .. ["..log_time().."]"
---          log_file:write(msg.."\n")
---          print         (msg)
---      end
     end
     --}}}
     if  log_file then
@@ -61,17 +56,11 @@ end
 --------------------------------------------------------------------------------
 -- BIND SERVER SOCKET ----------------------------------------------------------
 --------------------------------------------------------------------------------
--- dofile LuaSocket {{{
+-- lib/socket.lua {{{
 if not socket then
-
---  local      msg = "dofile LuaSocket/socket.lua"
---  Listen_log(msg)
---  print     (msg)
-
-    local lfs_currentdir = lfs and lfs.currentdir() or "."
-    dofile(lfs_currentdir.."/LuaSocket/socket.lua")
-
-    local socket         = require("socket")
+    local  script_dir  = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+    dofile(script_dir.."/lib/socket.lua")
+    local  socket = require("socket"    )
 end
 --}}}
 -- socket_bind {{{
@@ -103,10 +92,20 @@ local function string_split(s, sep)
    return  fields
 end
 --}}}
+-- sleep(sec) {{{
+function sleep(sec)
+
+    socket.select(nil, nil, sec)
+
+end --}}}
+
+local JSON =  dofile("lib/JSON.lua")
+      JSON.strictTypes = true -- to support metatable
 
 local req_count  = 0
 local req        = ""
 while req       ~= QUIT do
+--{{{
     local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
     req          = ""
     repeat
@@ -145,7 +144,7 @@ while req       ~= QUIT do
 
                 local next_event = (string.gsub(req, "Export_task_ActivityNextEvent.*", "next_event") == "next_event")
                 if    next_event then
-                    req_count = string.gsub(req, "[^0-9\.]", "") -- number-arg
+                    req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0) -- number-arg
                     Listen_log(  LOG_FOLD_CLOSE )
                     print(CLEAR..LOG_FOLD_CLOSE )
                 end
@@ -155,7 +154,7 @@ while req       ~= QUIT do
                     req =      req_table[i]
 
                     -- SEPARATOR
-                    if(req_count % 10 == 0) then print() end
+                    if((req_count > 0) and (req_count % 10 == 0)) then print() end
 
                     msg = next_event
                     and    string.format( "%4d | %s", req_count, tostring(req))
@@ -163,13 +162,16 @@ while req       ~= QUIT do
                     Listen_log(msg)
                     print(G .. msg)
 
-                    -- REPLY TO CLIENT
-                    --[[
-                    local answer
-                        = err and string.format("receive err=[%s]\n", err)
-                        or        string.format("receive req=[%s]\n", req)
-                    client:send( answer )
-                    --]]
+                    -- JSON
+                    if string.find(req, "{") then
+                        local  decoded_req =       JSON:decode( req )
+                        print(" x DECODED LUA OBJECT xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                        print(" x decoded_req: "..tostring(decoded_req))
+                        print(" - PRETTY JSON OBJECT ----------------------------------------------------------")
+                        local pretty_json_VALUE = JSON:encode_pretty(decoded_req)
+                        print(pretty_json_VALUE)
+                        print(" x xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                    end
 
                 end
 
@@ -183,14 +185,13 @@ while req       ~= QUIT do
 end
 --}}}
 
-
 --------------------------------------------------------------------------------
 -- CLOSE SERVER ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 --{{{
 msg = LF
 .."------------------------------------------------------------------------"..LF
-.."--- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port      
+.."--- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port          ..LF
 .."------------------------------------------------------------------------"..LF
 Listen_log(msg)
 print(R .. msg)
@@ -205,6 +206,7 @@ if  log_file then
     log_file = nil
 end
 
+sleep(2)
 --}}}
 
 --[[ vim

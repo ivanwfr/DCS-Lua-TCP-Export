@@ -12,32 +12,52 @@ local LOG_FOLD_OPEN           = "{{{"
 local LOG_FOLD_CLOSE          = "}}}"
 
 -- ENVIRONMENT
-local  script_dir    = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+local  script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
 dofile(script_dir.."/Export_log.lua"   )
 dofile(script_dir.."/Export_socket.lua")
+
+local JSON =  dofile("lib/JSON.lua")
+      JSON.strictTypes = true -- to support metatable
 
 -- UTIL
 -- get_time_and_altitude {{{
 function get_time_and_altitude()
 
-     return string.format( " MTime=[%4d]" ,            LoGetModelTime()                )
-     ..     string.format(" SeaAlt=[%5dm]", math.floor(LoGetAltitudeAboveSeaLevel   ()))
-     ..     string.format(" GndAlt=[%5dm]", math.floor(LoGetAltitudeAboveGroundLevel()))
+    local MTime  =            LoGetModelTime()
+    local SeaAlt = math.floor(LoGetAltitudeAboveSeaLevel   ())
+    local GndAlt = math.floor(LoGetAltitudeAboveGroundLevel())
 
+    local lua_object
+    = {   MTime  = MTime
+    ,    SeaAlt  = SeaAlt
+    ,    GndAlt  = GndAlt }
+
+    local json_object = JSON:encode( lua_object )
+
+    local str = ""
+    ..string.format( " MTime=[%4d]" ,  MTime)
+    ..string.format(" SeaAlt=[%5dm]", SeaAlt)
+    ..string.format(" GndAlt=[%5dm]", GndAlt)
+
+    return str, json_object
 end
 --}}}
 -- get_label_object_tostring {{{
 function get_label_object_tostring(label,o)
 
-    local str = " "..label..":\n"
+    local lua_object = { label = label }
+    local        str =      " "..label..":\n"
 
     for k,v in pairs(o) do
+        lua_object[ tostring(k) ] = v
         str = str..string.format("  %20s = [%-20s]\n", k, tostring(v))
     end
 
-    str = string.gsub(str, "\n$", "")
+    str = string.gsub(str, "\n$", "") -- strip ending LF
 
-    return str
+    local json_object = JSON:encode( lua_object )
+
+    return str , json_object
 end
 --}}}
 
@@ -72,10 +92,19 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetWorldObjects ---------
     local   o = LoGetWorldObjects()
     for k,v in pairs(o) do
         if(v.Name == "A-10C") then--FIXME
-            msg   =     get_label_object_tostring("ACTIVITY["..t.."] k=["..k.."]",v)
-            Export_log(msg)
+
+            str, json = get_label_object_tostring("ACTIVITY["..t.."] k=["..k.."]",v)
+
+            msg   =     str
+            Export_log( msg)
             socket_send(msg)
             print      (msg)
+
+            msg   =     json
+            Export_log( msg)
+            socket_send(msg)
+            print      (msg)
+
         end
     end
 
@@ -105,10 +134,17 @@ function Export_task_coroutine_handle(t)
 
 repeat
 
-    msg =       get_time_and_altitude()
+    str, json = get_time_and_altitude()
+
+    msg =       str
     Export_log (msg)
     print      (msg)
     socket_send(msg)
+
+    msg   =     json
+    Export_log( msg)
+    socket_send(msg)
+    print      (msg)
 
     t = coroutine.yield()
 
