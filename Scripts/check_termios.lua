@@ -19,6 +19,6 @@ io.write("C: ".. ESC.."[1;36m" .. "XXX"..LF)
 io.write("N: ".. ESC.."[0m"    .. "XXX"..LF)
 
 --[[
-:update|only|terminal luae %
+    :update|only|terminal luae %
 --]]
 
