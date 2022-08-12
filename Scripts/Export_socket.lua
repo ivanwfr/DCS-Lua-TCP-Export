@@ -10,10 +10,9 @@ local SEND_TO_TARGET = true -- UNCOMMENT TO FORMAT MESSAGES FOR TARGET SCRIPT
 --]]
 
 -- ENVIRONMENT
--- dofile Export_log {{{
+--     Export_log.lua {{{
 if not Export_log then
     local  script_dir  = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
-
     dofile(script_dir.."/Export_log.lua"   )
 end
 --}}}
@@ -21,17 +20,11 @@ end
 --------------------------------------------------------------------------------
 -- CONNECT CLIENT SOCKET -------------------------------------------------------
 --------------------------------------------------------------------------------
--- dofile LuaSocket {{{
+-- lib/socket.lua {{{
 if not socket then
-
---  local msg = "dofile LuaSocket/socket.lua"
---  Export_log  (msg)
---  print(msg)
-
-    local lfs_currentdir = lfs and lfs.currentdir() or "."
-    dofile(lfs_currentdir.."/LuaSocket/socket.lua")
-
-    local socket         = require("socket")
+    local  script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+    dofile(script_dir.."/lib/socket.lua")
+    local  socket = require("socket"    )
 end
 --}}}
 -- socket_connect {{{
