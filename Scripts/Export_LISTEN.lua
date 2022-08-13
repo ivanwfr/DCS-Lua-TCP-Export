@@ -1,10 +1,8 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220813:00h:21) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220813:02h:22) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
-
 local COLORED = arg and arg[1] and (arg[1] == "COLORED")
-
 -- TERMIOS {{{
 local LF             = "\n"
 local LOG_FOLD_OPEN  = "{{{"
@@ -20,16 +18,17 @@ local     M   = COLORED and (ESC.."[1;35m") or "" -- MAGENTA
 local     C   = COLORED and (ESC.."[1;36m") or "" --    CYAN
 local     N   = COLORED and (ESC.."[0m"   ) or "" --      NC
 
---}}}
 print(CLEAR..N.."  N  "..R.." R"..G.." G "..B.."B  "..C.." C"..M.." M "..Y.."Y")
-
+--}}}
 print(C.."@@@ LOADING Export_LISTEN.lua"..N)
 
 local PORT =  5002
 local HOST = "*"
 local QUIT = "quit"
 
+--------------------------------------------------------------------------------
 -- %USERPROFILE%/Saved Games/DCS/Logs/Export_log
+--------------------------------------------------------------------------------
 --{{{
 local script_dir        = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
 local log_file          = nil
@@ -84,7 +83,7 @@ Listen_log( LOG_FOLD_OPEN  )
 --}}}
 
 --------------------------------------------------------------------------------
--- CLIENT REQUEST LOOP ---------------------------------------------------------
+-- HANDLE CLIENT REQUESTS ------------------------------------------------------
 --------------------------------------------------------------------------------
 -- string_split(s, sep) {{{
 local function string_split(s, sep)
@@ -101,8 +100,7 @@ function sleep(sec)
     socket.select(nil, nil, sec)
 
 end --}}}
-
--- get_label_object_GRID {{{
+-- update_GRID_CELLS {{{
 local req_count  = 0
 local req_label  = ""
 local req        = ""
@@ -119,22 +117,13 @@ local          str = ""
 local          col = 0
 local          row = 0
 
-function get_label_object_GRID(o , pfx)
---if pfx then str = str..LF..("@@@ get_label_object_GRID(pfx "..tostring(pfx)..")") end
-
-    if not pfx then
-        str = Y
-        row = 0
-        col = 0
-    end
+function update_GRID_CELLS(o,parent_k)
 
     for k,v in pairs(o) do
 
-        k   = pfx
-        and  (pfx.."."..k)
-        or              k
-
---str = str..LF..("@@@ "..type(v).." k=["..k.."]"..LF)
+        k   = parent_k
+        and  (parent_k.."."..k)
+        or                   k
 
         if((type(v) == "string") or (type(v) == "number") or (type(v) == "boolean")) then
 
@@ -144,12 +133,6 @@ function get_label_object_GRID(o , pfx)
             or                                       string.format("%16s"  , tostring(v)                  )
 
             local cell = string.format(" %-20s = %-25s ", k, v)
-
-            -- CELL ROW COL
-            col =  col + 1
-            if     col > GRID_COL_MAX then str = str..LF          ; col = 1; row = row+1
-            elseif col > 1            then str = str..GRID_COL_SEP
-            end
 
             -- COLOR
             local new_item   =              not  GRID_CELLS[k]
@@ -168,9 +151,8 @@ function get_label_object_GRID(o , pfx)
             else                  GRID_CELLS[k] = { cell = cell , color = color }
             end
 
-            str =  str..GRID_CELLS[k].color.."["..GRID_CELLS[k].cell.."]"
         else
-            get_label_object_GRID(v, k)
+            update_GRID_CELLS(v, k)
         end
 
     end
@@ -180,8 +162,8 @@ function get_label_object_GRID(o , pfx)
     return str
 end
 --}}}
--- get_GRID_CELLS_str {{{
-function get_GRID_CELLS_str()
+-- format_GRID_CELLS {{{
+function format_GRID_CELLS()
 
     local str = ""
     local col = 0
@@ -283,8 +265,8 @@ while req       ~= QUIT do
                         local        json_VALUE = JSON:encode          (decoded_req)
                         local pretty_json_VALUE = JSON:encode_pretty   (decoded_req)
 --print("@@@ json_VALUE=["..json_VALUE.."]")
-                                                  get_label_object_GRID(decoded_req)
-                        local grid_str          = get_GRID_CELLS_str   ()
+                                                  update_GRID_CELLS(decoded_req)
+                        local grid_str          = format_GRID_CELLS()
 
                         Listen_log(pretty_json_VALUE)
 
