@@ -1,24 +1,53 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220813:00h:44) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220814:03h:46) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_task.lua")
 
--- PARAMETERS
+local GRID_ROW_COL
+    = { MTime      ={row= 1,col=1} , SeaAlt         ={row= 1,col=2} ,       GndAlt     ={row= 1,col=3}
+    ,   Bank       ={row= 2,col=1} , LatLongAlt_Alt ={row= 2,col=2} ,       Position_x ={row= 2,col=3}
+    ,   Heading    ={row= 3,col=1} , LatLongAlt_Lat ={row= 3,col=2} ,       Position_y ={row= 3,col=3}
+    ,   Pitch      ={row= 4,col=1} , LatLongAlt_Long={row= 4,col=2} ,       Position_z ={row= 4,col=3}
+    ,   Name       ={row= 5,col=1} ,       GroupName={row= 5,col=2} ,       Coalition  ={row= 5,col=3}
+    ,   Country    ={row= 6,col=1} ,       UnitName ={row= 6,col=2} ,       CoalitionID={row= 6,col=3}
+    ,   label      ={row= 7,col=3}
+    ,                                    Type_level1={row= 8,col=2} ,       Type_level3={row= 8,col=3}
+    ,                                    Type_level2={row= 9,col=2} ,       Type_level4={row= 9,col=3}
+    ,   Flags_AI_ON={row=10,col=1} , Flags_IRJamming={row=10,col=2} , Flags_RadarActive={row=10,col=3}
+    ,   Flags_Born ={row=11,col=1} , Flags_Invisible={row=11,col=2} , Flags_Static     ={row=11,col=3}
+    ,   Flags_Human={row=12,col=1} , Flags_Jamming  ={row=12,col=2}
+    }
+
+--[[
+local log_this = true
+--]]
+
+--------------------------------------------------------------------------------
+------------------------------------------------------------------ PARAMETERS --
+--------------------------------------------------------------------------------
+local LOG_FOLD_OPEN           = "{{{"
 local ACTIVITY_START_DELAY    = 0.5
 local ACTIVITY_INTERVAL       = 2.0
 
+
 local LF                      = "\n"
-local LOG_FOLD_OPEN           = "{{{"
+
 local LOG_FOLD_CLOSE          = "}}}"
 
--- ENVIRONMENT
-local  script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
-                dofile(script_dir.."/Export_log.lua"   )
-                dofile(script_dir.."/Export_socket.lua")
-local JSON =    dofile(script_dir.."/lib/JSON.lua")
+--------------------------------------------------------------------------------
+--------------------------------------------- ENVIRONMENT [script_dir] [JSON] --
+--------------------------------------------------------------------------------
+--{{{
+local               script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+             dofile(script_dir.."/Export_log.lua"   )
+             dofile(script_dir.."/Export_socket.lua")
+local JSON = dofile(script_dir.."/lib/JSON.lua")
       JSON.strictTypes = true -- to support metatable
+--}}}
 
--- UTIL
+--------------------------------------------------------------------------------
+------------------------------------------------------------------------ UTIL --
+--------------------------------------------------------------------------------
 -- get_time_and_altitude {{{
 function get_time_and_altitude()
 
@@ -26,51 +55,78 @@ function get_time_and_altitude()
     local SeaAlt = math.floor(LoGetAltitudeAboveSeaLevel   ())
     local GndAlt = math.floor(LoGetAltitudeAboveGroundLevel())
 
-    local lua_object
-    = {   MTime  = MTime
-    ,    SeaAlt  = SeaAlt
-    ,    GndAlt  = GndAlt }
+    local o
+    = {   MTime = MTime
+    ,    SeaAlt = SeaAlt
+    ,    GndAlt = GndAlt }
+print("get_time_and_altitude: o:"..LF..JSON:encode_pretty(o))--FIXME
+
+    local grid_cells = add_object_to_GRID_CELLS( o )
+print("get_time_and_altitude: grid_cells:"..LF..JSON:encode_pretty(grid_cells))--FIXME
+
 --[[
 /MTime\|SeaAlt\|GndAlt
 --]]
-    local json_object = JSON:encode( lua_object )
+    local json = JSON:encode( grid_cells )
 
     local str = ""
     ..string.format( " MTime=[%4d]" ,  MTime)
     ..string.format(" SeaAlt=[%5dm]", SeaAlt)
     ..string.format(" GndAlt=[%5dm]", GndAlt)
 
-    return str, json_object
+    return str, json
 end
 --}}}
--- get_label_object_tostring {{{
-function get_label_object_tostring(label,o)
+-- add_object_to_GRID_CELLS {{{
+local                  GRID_CELLS = {}
+function add_object_to_GRID_CELLS(o, parent_k)
 
-    local lua_object = { label = label }
-    local        str =      " "..label..":\n"
-
-    if type(o) ~= "table" then
-        return str, nil
+    if not parent_k then
+        GRID_CELLS = {}
     end
 
     for k,v in pairs(o) do
-        lua_object[ tostring(k) ] = v
-        str = str..string.format("  %20s = [%-20s]\n", k, tostring(v))
+
+        ------------------
+        -- LABEL [k] -----
+        ------------------
+        if parent_k then
+            k =  parent_k.."_"..k
+        end
+
+        ------------------
+        -- INNER TABLE ---
+        ------------------
+        local is_a_table = (type(v) ~= "string") and (type(v) ~= "number") and (type(v) ~= "boolean")
+        if    is_a_table then
+            add_object_to_GRID_CELLS(v, k)
+
+        ------------------
+        -- SINGLE ITEM ---
+        ------------------
+        else
+            v  = (type(v) == "number")
+            and   string.format("%.2f",          v )
+            or    string.format("%s"  , tostring(v))
+
+            local     row = (GRID_ROW_COL[k] and GRID_ROW_COL[k].row) or 0
+            local     col = (GRID_ROW_COL[k] and GRID_ROW_COL[k].col) or 0
+            GRID_CELLS[k] = { val=v , row=row , col=col }
+        end
+
     end
 
-    str = string.gsub(str, "\n$", "") -- strip ending LF
-
-    local json_object = JSON:encode( lua_object )
-
-    return str , json_object
+    return GRID_CELLS
 end
 --}}}
 
--- EXPORT CYCLE
+--------------------------------------------------------------------------------
+---------------------------------------------------------------- EXPORT CYCLE --
+--------------------------------------------------------------------------------
 function Export_task_Start() ----------------- CONNECT localhost:5001 ------------{{{
 print("Export_task_Start")
 
-    local msg = "Export_task_Start .. socket_connect .. "..log_time()..":"..LF..LOG_FOLD_OPEN
+    local      msg = "Export_task_Start .. socket_connect .. "..log_time()..":"..LF..LOG_FOLD_OPEN
     Export_log(msg)
     print     (msg)
 
@@ -90,65 +146,53 @@ end
 --}}}
 function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------------- {{{
 
-    local       msg = "Export_task_ActivityNextEvent("..t.."):"
-    Export_log( msg)
+    -- STREAM OR EVENT
+    local           msg = "Export_task_ActivityNextEvent("..t.."):"
+    if log_this then
+        Export_log( msg)
+        print      (msg)
+    end
     socket_send(msg)
-    print      (msg)
 
-    local    o = LoGetSelfData()
-    local json = JSON:encode( o )
+    -- k,v , row,col
+    local    o = LoGetSelfData( )
+
+    local grid_cells = add_object_to_GRID_CELLS( o )
+
+--print("@@@ Export_task.Export_task_ActivityNextEvent: grid_cells:"..LF..JSON:encode_pretty(grid_cells))
+
+    local json = JSON:encode( grid_cells )
+--print("@@@ json:"..LF..json)
+
+    -- SEND grid_cells
     msg        = json
-    Export_log( msg)
+    if log_this then
+        Export_log (msg)
+        print      (msg)
+    end
     socket_send(msg)
-    print      (msg)
-
-----{{{
---    for k,v in pairs(o) do
-----      if(v.Name == "A-10C") then--FIXME
---
---            str, json = get_label_object_tostring("ACTIVITY["..t.."] k=["..k.."]",v)
---
---            --[[ SEND str  --{{{
---            msg   =     str
---            Export_log( msg)
---            socket_send(msg)
---            print      (msg)
---            --}}}--]]
---
---            ---[[ SEND json --{{{
---            msg   =     json-- or str
---            Export_log( msg)
---            socket_send(msg)
---            print      (msg)
---            --}}}--]]
---
-----      end
---    end
-----}}}
 
     return  t+1 -- so as to be called again
 end
 --}}}
 function Export_task_Stop() ------------------ CLOSE SOCKET ----------------------{{{
-print("Export_task_Stop")
 
-    local msg = LOG_FOLD_CLOSE..LF.."Export_task_Stop ... socket_close .... "..log_time()..":"
+    local      msg = LOG_FOLD_CLOSE..LF.."Export_task_Stop ... socket_close .... "..log_time()..":"
     Export_log(msg)
-    print(msg)
+    print     (msg)
 
     socket_close()
 
     if  log_file then
         log_file:flush()
---      log_file:close()
---      log_file = nil
     end
 end
 --}}}
 
--- DATA STREAM COROUTINE
--- Export_task_coroutine_handle {{{
-function Export_task_coroutine_handle(t)
+--------------------------------------------------------------------------------
+------------------------------------------------------- DATA STREAM COROUTINE --
+--------------------------------------------------------------------------------
+function Export_task_coroutine_handle(t) ----- STREAMING STEP --------------------{{{
 
 repeat
 
@@ -180,8 +224,14 @@ until get_Export_socket() == nil
 
 end
 --}}}
--- Export_task_coroutine_start {{{
-function Export_task_coroutine_start()
+function CoroutineResume(index,t)------------- STREAMING STEP INDEX --------------{{{
+
+           coroutine.resume(Coroutines[index], t)
+
+    return coroutine.status(Coroutines[index]   ) ~= "dead"
+end
+--}}}
+function Export_task_coroutine_start()   ----- STREAMING START -------------------{{{
 
     local msg = "Export_task_coroutine_start"
     Export_log(msg)
@@ -189,21 +239,9 @@ function Export_task_coroutine_start()
 
     Coroutines                  = {}
     CoroutineIndex              = 1
-    Coroutines[CoroutineIndex]  = coroutine.create(Export_task_coroutine_handle) 
+    Coroutines[CoroutineIndex]  = coroutine.create(Export_task_coroutine_handle)
 
     LoCreateCoroutineActivity(CoroutineIndex, ACTIVITY_START_DELAY, ACTIVITY_INTERVAL)
-end
---}}}
--- CoroutineResume {{{
-function CoroutineResume(index, t)
-
---  local msg = "CoroutineResume"
---  Export_log(msg)
---  print(msg)
-
-           coroutine.resume(Coroutines[index], t)
-
-    return coroutine.status(Coroutines[index]   ) ~= "dead"
 end
 --}}}
 
