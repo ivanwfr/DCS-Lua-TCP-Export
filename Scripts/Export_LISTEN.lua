@@ -113,13 +113,6 @@ end --}}}
 --------------------------------------------------------------------------------
 -- HANDLE CLIENT REQUESTS ------------------------------------------------------
 --------------------------------------------------------------------------------
---[[
-:only
-:update|only|vert terminal ++cols=200 luae Export_LISTEN.lua
-    :update|     terminal   luae Export_TEST.lua    TESTING
-:update|!start /b                     luae Export_TEST.lua    TESTING
-:update|!start /b                     luae Export_TEST.lua    TERMINATING
---]]
 -- JSON {{{
 local JSON =  dofile(script_dir.."/lib/JSON.lua")
 
@@ -139,45 +132,36 @@ local GRID_CELLS       = {}
 local GRID_COL_SIZE    = {}
 
 local function update_GRID_CELLS(o,parent_k)
-
---print("update_GRID_CELLS:"..LF..JSON:encode_pretty(o))--FIXME
     for k,v in pairs(o) do
-
+        -------------------
+        -- PARENT-CHAIN ---
+        -------------------
+        --{{{
         k   = parent_k
         and  (parent_k.."."..k)
         or                   k
---print("k=["..      k  .."]")--FIXME
---print("v=[".. type(v) .."]")--FIXME
---print("v.val=[".. type(v.val) .."]")--FIXME
 
+        --}}}
+        -------------------
+        -- KEY..VALUE -----
+        -------------------
+        --{{{
         if((type(v.val) == "string") or (type(v.val) == "number") or (type(v.val) == "boolean")) then
 
+            --------------
             -- CELL FORMAT
---[[--{{{
-            local val
-            =  (type(v.val) == "number" ) and string.format("%16.2f",          v.val                   )
-            or (type(v.val) == "boolean") and string.format("%16s"  ,          v.val and "YES" or "NO" )
-            or                                string.format("%16s"  , tostring(v.val)                  )
---}}}--]]
-
+            --------------
             local val
             =  (type(v.val) == "number" ) and string.format("%2.2f" ,          v.val                   )
             or (type(v.val) == "boolean") and string.format("%s"    ,          v.val and "YES" or "NO" )
             or                                string.format("%s"    , tostring(v.val)                  )
 
---{{{
---          local r_c  = string.format("(%2d %2d) "     , v.row, v.col)
---          local cell = string.format(" %-25s = %-25s ", r_c..k, val)
---          local cell = string.format(" %s = %-s "     , r_c..k, val)
-
---          local cell = string.format(" %s = %s "      ,      k, val)
---          local cell = string.format(" %-25s = %-25s ",      k, val)
---          local cell = string.format( " %25s = %s "   ,      k, val)
---}}}
             local cell = string.format( " %25s = %-25s ",      k, val)
             local cell = string.format( " %15s = %-15s ",      k, val)
 
-            -- COLOR
+            --------------
+            -- COLOR -----
+            --------------
             local new_item   =              not  GRID_CELLS[k]
             local same_value = not new_item and (GRID_CELLS[k].cell == cell)
             local stream_val = req_label == REQ_LABEL_STREAM
@@ -189,35 +173,40 @@ local function update_GRID_CELLS(o,parent_k)
             or    (event_data and B or C)
             or                    N
 
+            --------------
             -- CELL CACHE
+            --------------
             if GRID_CELLS[k] then GRID_CELLS  [k] = { cell=cell , row=v.row , col=v.col , color = color }
             else                  GRID_CELLS  [k] = { cell=cell , row=v.row , col=v.col , color = color }
             end
---print("@@@ GRID_CELLS["..k.."]:"..LF..JSON:encode_pretty(GRID_CELLS[k]))
 
+            --------------
             -- LOG CHANGE
+            --------------
             if new_item then
                 Listen_log("NEW ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
             elseif not same_value then
                 Listen_log("MOD ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
             end
 
+            --------------------------------------------
             -- KEEP TRACK OF EACH COLUMN MAX USED LENGTH
+            --------------------------------------------
             local col = v.col or 0
 
             GRID_COL_SIZE[col] = math.max(GRID_COL_SIZE[col] or 0, string.len(cell))
---print("GRID_COL_SIZE["..  col.."]=["..    GRID_COL_SIZE[col].."]")--FIXME
 
+        --}}}
+        -------------------
+        -- SUB-OBJECT -----
+        -------------------
+        --{{{
         else
             update_GRID_CELLS(v, k)
+
         end
-
+        --}}}
     end
-
---print(G.."XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
---print(G.."@@@ GRID_CELLS["..tostring(GRID_CELLS).."]:"..LF..JSON:encode(GRID_CELLS):gsub("}","}\n"))
---print(G.."XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-
 end
 --}}}
 -- format_GRID_CELLS {{{
@@ -236,9 +225,9 @@ local function format_GRID_CELLS(timestamp)
         and            (a.col and b.col) and (a.col >= b.col)
         return result
     end
-    --}}}
-    --{{{
+
     local row_col_keys = {}
+
     for k,v in pairs(GRID_CELLS) do
         if (v.row and v.col) and (v.row>0 and v.col>0) then
             local r_c = string.format("(%2d %2d)__", v.row, v.col)
@@ -246,10 +235,10 @@ local function format_GRID_CELLS(timestamp)
         end
     end
 
-    table.sort(   row_col_keys--[[, compare_row_col--]])
---- for i,n in ipairs(row_col_keys) do print(i.." "..n) end
+    table.sort(       row_col_keys--[[, compare_row_col--]])
+
     for k,v in  pairs(row_col_keys) do row_col_keys[k] = row_col_keys[k]:gsub(".*__","") end
---- for i,n in ipairs(row_col_keys) do print(i.." "..n) end
+
     --}}}
 
     ----------------------------------------
@@ -265,16 +254,10 @@ local function format_GRID_CELLS(timestamp)
     local row = 1
     local col = 1
     local idx = 1
---print("format_GRID_CELLS: #row_col_keys=["..#row_col_keys.."]"..LF..JSON:encode_pretty(row_col_keys):gsub(",",",\n"))--FIXME
 
     while idx <= #row_col_keys do
-
         local k = row_col_keys[idx]--:gsub(".*__","")--FIXME
         local v = GRID_CELLS[k]
---print("idx=["..idx.."] .. row["..row.."] .. col["..col.."] .. k=["..k.."]")--FIXME
---print("v:"..JSON:encode(v))
---print()
-
         -- CELL OR BLANK {{{
         if  v.row and (v.row == row)
         and v.col and (v.col == col)
@@ -286,9 +269,7 @@ local function format_GRID_CELLS(timestamp)
         --}}}
         -- FILL BLANK GRID-CELLS {{{
         else
---print("col["..col.."]")--FIXME
             if GRID_COL_SIZE[col] then
---print("GRID_COL_SIZE["..  col.."]=["..  GRID_COL_SIZE[col].."]")--FIXME
                 cell = string.format("[%."..GRID_COL_SIZE[col].."s]", GRID_FILL_CHAR)
             else
                 cell = ""
@@ -327,20 +308,20 @@ local function format_GRID_CELLS(timestamp)
     for k,v in pairs(GRID_CELLS) do
         k = k:gsub(".*__","")--FIXME
         if not v.timestamp or (v.timestamp ~= timestamp) then
+            -- [warn_missin_msg] {{{
             v.timestamp = timestamp
             cell        = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",v.cell).."]"
-
             if warn_missin_msg then
                 str = str..LF..warn_missin_msg..LF
+
                 warn_missin_msg = nil -- consume displayed warn_missin_msg
             end
-
+            --}}}
             -- CONTENT {{{
             sep      = (col > 1            ) and GRID_COL_SEP or ""
             eol      = (col == GRID_COL_MAX) and LF           or ""
             str      = str .. sep .. cell .. eol
             --}}}
-
             -- NEXT GRID CELL {{{
             col    = col + 1
             if col > GRID_COL_MAX then
@@ -352,6 +333,9 @@ local function format_GRID_CELLS(timestamp)
     end
     --}}}
 
+    ----------------------------------------
+    -- RETURN DELTA HIGHLIGHTED VALUES -----
+    ----------------------------------------
     str = string.gsub(str, "[ \n]$", "")
     return str
 end
@@ -361,8 +345,18 @@ local listen_done_close_socket_and_log_file
 local function listen()
 
     while req       ~= QUIT do
+        ---------------------------
+        -- ACCEPT CLIENT CONNECTION
+        ---------------------------
         --{{{
         local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
+
+        --}}}
+
+        ---------------------------
+        -- HANDLE CLIENT REQUESTS -
+        ---------------------------
+        --{{{
         req          = ""
         repeat
             ------------------------------------------------------------------------
@@ -407,10 +401,6 @@ local function listen()
                 -- HANDLE STREAM AND EVENT REQUESTS --------------------------------
                 --------------------------------------------------------------------
                 else
-                    -- REQUEST LINE {{{
-                    local     req_table = string_split(req,"\n")
-
-                    --}}}
                     -- NEW EVENT OR STREAM-DATA {{{
                     local next_event
                     =  (string.gsub(req, "Export_task_ActivityNextEvent.*", "NEXT_EVENT") == "NEXT_EVENT")
@@ -428,6 +418,7 @@ local function listen()
                     end
                     --}}}
                     -- REQUEST LINES {{{
+                    local     req_table = string_split(req,"\n")
                     for i=1, #req_table do
 
                         req =      req_table[i]
@@ -451,10 +442,17 @@ local function listen()
             end
         until err or req==QUIT
 
-    --}}}
+        --}}}
+
     end
 
+    -------------------------------
+    -- CLOSE CLIENT CONNECTION ----
+    -------------------------------
+    --{{{
     listen_done_close_socket_and_log_file()
+
+    --}}}
 
 end
 --}}}
