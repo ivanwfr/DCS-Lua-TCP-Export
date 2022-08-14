@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220814:03h:37) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220814:19h:09) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
@@ -20,7 +20,7 @@ local LOG_FOLD_OPEN  = "{{{"
 local LOG_FOLD_CLOSE = "}}}"
 
 local   ESC   = tostring(string.char(27))
-local CLEAR   = COLORED and (ESC.."c"     ) or "CLEAR"--FIXME
+local CLEAR   = COLORED and (ESC.."c"     ) or LF.."CLEAR"
 local     R   = COLORED and (ESC.."[1;31m") or "" --     RED
 local     G   = COLORED and (ESC.."[1;32m") or "" --   GREEN
 local     Y   = COLORED and (ESC.."[1;33m") or "" --  YELLOW
@@ -156,8 +156,7 @@ local function update_GRID_CELLS(o,parent_k)
             or (type(v.val) == "boolean") and string.format("%s"    ,          v.val and "YES" or "NO" )
             or                                string.format("%s"    , tostring(v.val)                  )
 
-            local cell = string.format( " %25s = %-25s ",      k, val)
-            local cell = string.format( " %15s = %-15s ",      k, val)
+            local cell                      = string.format(" %15s = %-15s ", k, val)
 
             --------------
             -- COLOR -----
@@ -167,11 +166,19 @@ local function update_GRID_CELLS(o,parent_k)
             local stream_val = req_label == REQ_LABEL_STREAM
             local event_data = req_label == REQ_LABEL_EVENT
 
+--[[
             local color
             =      new_item   and N
             or    (stream_val and G or Y)
             or    (event_data and B or C)
             or                    N
+--]]
+
+            local color
+            =      new_item   and                 Y
+            or     stream_val and (same_value and G or Y)
+            or     event_data and (same_value and B or C)
+            or                                    N
 
             --------------
             -- CELL CACHE
@@ -209,6 +216,48 @@ local function update_GRID_CELLS(o,parent_k)
     end
 end
 --}}}
+-- table_len {{{
+local function table_len(table)
+    local len = 0
+    for _,_ in pairs(table) do len = len + 1 end
+    return len
+end
+--}}}
+-- get_row_col_keys {{{
+local row_col_keys = {}
+local function get_row_col_keys(grid_cells)
+
+    local grid_cells_len = table_len(grid_cells)
+--print("get_row_col_keys("..grid_cells_len.." grid_cells):")
+
+    if #row_col_keys >= grid_cells_len then
+--print("get_row_col_keys: ...OLD "..#row_col_keys.."/"..grid_cells_len.." row_col_keys):")
+        return row_col_keys
+    end
+
+    -- MAKE A SORTED COLLECTION OF KEYS BY INCREASING ROW,COL
+    row_col_keys = {}
+
+    -- add alphanumeric row_col prefix
+    for k,v in pairs(grid_cells) do
+        if (v.row and v.col) and (v.row>0 and v.col>0) then
+            local r_c = string.format("(%2d %2d)__", v.row, v.col)
+            table.insert(row_col_keys, r_c..k)
+        end
+    end
+
+    -- sort alphanumeric oder
+    table.sort( row_col_keys )
+
+    -- clear alphanumeric row_col prefix
+    for k,v in  pairs(row_col_keys) do
+        row_col_keys[k] = row_col_keys[k]:gsub(".*__","")
+    end
+
+--print("get_row_col_keys: ...NEW "..#row_col_keys.."/"..grid_cells_len.." row_col_keys):")
+    return row_col_keys
+end
+--}}}
 -- format_GRID_CELLS {{{
 local timestamp = 0
 local function format_GRID_CELLS(timestamp)
@@ -216,30 +265,8 @@ local function format_GRID_CELLS(timestamp)
     ----------------------------------------
     -- GET [row_col_keys] SPECIFIIED ROW,COL
     ----------------------------------------
-    -- ORDER keys by increasing row,col {{{
-    local function compare_row_col(a,b)
-        local a = GRID_CELLS[a:gsub(".*__","")]
-        local b = GRID_CELLS[b:gsub(".*__","")]
-
-        local result = (a.row and b.row) and (a.row >= b.row)
-        and            (a.col and b.col) and (a.col >= b.col)
-        return result
-    end
-
-    local row_col_keys = {}
-
-    for k,v in pairs(GRID_CELLS) do
-        if (v.row and v.col) and (v.row>0 and v.col>0) then
-            local r_c = string.format("(%2d %2d)__", v.row, v.col)
-            table.insert(row_col_keys, r_c..k)
-        end
-    end
-
-    table.sort(       row_col_keys--[[, compare_row_col--]])
-
-    for k,v in  pairs(row_col_keys) do row_col_keys[k] = row_col_keys[k]:gsub(".*__","") end
-
-    --}}}
+    local grid_cells_len =        table_len( GRID_CELLS )
+    local row_col_keys   = get_row_col_keys( GRID_CELLS )
 
     ----------------------------------------
     -- DO CELLS WITH A SPECIFIIED ROW,COL---
@@ -256,15 +283,20 @@ local function format_GRID_CELLS(timestamp)
     local idx = 1
 
     while idx <= #row_col_keys do
-        local k = row_col_keys[idx]--:gsub(".*__","")--FIXME
+        local k = row_col_keys[idx]
         local v = GRID_CELLS[k]
         -- CELL OR BLANK {{{
         if  v.row and (v.row == row)
         and v.col and (v.col == col)
         then
             v.timestamp = timestamp
-            cell        = v.cell; while string.len(cell) <  GRID_COL_SIZE[col] do cell = " "..cell.." " end--FIXME
-            cell        = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",  cell).."]"
+            cell        = v.cell
+            if GRID_COL_SIZE[col] then
+                while string.len(cell) <  GRID_COL_SIZE[col] do cell = " "..cell.." " end
+                cell    = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",  cell).."]"
+            else
+                cell    = v.color.."["..                                              cell .."]"
+            end
             idx         = idx+1
         --}}}
         -- FILL BLANK GRID-CELLS {{{
@@ -306,11 +338,14 @@ local function format_GRID_CELLS(timestamp)
     local warn_missin_msg = "xxx MISSING ROW-COL:"
 
     for k,v in pairs(GRID_CELLS) do
-        k = k:gsub(".*__","")--FIXME
         if not v.timestamp or (v.timestamp ~= timestamp) then
             -- [warn_missin_msg] {{{
             v.timestamp = timestamp
-            cell        = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",v.cell).."]"
+            if GRID_COL_SIZE[col] then
+                cell        = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",v.cell).."]"
+            else
+                cell        = v.color.."["..                                            v.cell .."]"
+            end
             if warn_missin_msg then
                 str = str..LF..warn_missin_msg..LF
 
@@ -409,6 +444,7 @@ local function listen()
                     if next_event then
 
                         Listen_log(  LOG_FOLD_CLOSE )
+                        Listen_log(  LOG_FOLD_OPEN  )
 
                         req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0 ) -- number-arg
 
@@ -432,6 +468,9 @@ local function listen()
                             local grid_str = format_GRID_CELLS(timestamp)
 
                             print(CLEAR)
+
+                            if not COLORED then print(req_label) end
+
                             print( grid_str )
 
                         end
