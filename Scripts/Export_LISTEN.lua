@@ -1,15 +1,26 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220813:02h:22) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220814:03h:37) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
-local COLORED = arg and arg[1] and (arg[1] == "COLORED")
+
+local COLORED        = arg and arg[1] and (arg[1] == "COLORED")
+
+local PORT           =  5002
+local HOST           = "*"
+
+local QUIT           = "quit"
+
+local GRID_COL_MAX   = 3
+local GRID_COL_SIZE  = 50
+local GRID_FILL_CHAR = "--------------------------------------------------------------------------------"
+
 -- TERMIOS {{{
 local LF             = "\n"
 local LOG_FOLD_OPEN  = "{{{"
 local LOG_FOLD_CLOSE = "}}}"
 
-local   ESC   = tostring(string.char(27));
-local CLEAR   = COLORED and (ESC.."c"     ) or "" 
+local   ESC   = tostring(string.char(27))
+local CLEAR   = COLORED and (ESC.."c"     ) or "CLEAR"--FIXME
 local     R   = COLORED and (ESC.."[1;31m") or "" --     RED
 local     G   = COLORED and (ESC.."[1;32m") or "" --   GREEN
 local     Y   = COLORED and (ESC.."[1;33m") or "" --  YELLOW
@@ -22,10 +33,6 @@ print(CLEAR..N.."  N  "..R.." R"..G.." G "..B.."B  "..C.." C"..M.." M "..Y.."Y")
 --}}}
 print(C.."@@@ LOADING Export_LISTEN.lua"..N)
 
-local PORT =  5002
-local HOST = "*"
-local QUIT = "quit"
-
 --------------------------------------------------------------------------------
 -- %USERPROFILE%/Saved Games/DCS/Logs/Export_log
 --------------------------------------------------------------------------------
@@ -33,6 +40,7 @@ local QUIT = "quit"
 local script_dir        = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
 local log_file          = nil
 local log_file_name     = nil
+
 --}}}
 -- log_time {{{
 local function log_time()
@@ -43,7 +51,7 @@ local function log_time()
     .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
 end --}}}
 -- Listen_log {{{
-function Listen_log(line)
+local function Listen_log(line)
     -- [log_file ../Logs/Listen.log] {{{
     if not log_file_name then
         log_file_name   = script_dir.."/../Logs/Listen.log"
@@ -82,8 +90,9 @@ Listen_log( LOG_FOLD_OPEN  )
 
 --}}}
 
+
 --------------------------------------------------------------------------------
--- HANDLE CLIENT REQUESTS ------------------------------------------------------
+-- UTIL ------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- string_split(s, sep) {{{
 local function string_split(s, sep)
@@ -95,44 +104,78 @@ local function string_split(s, sep)
 end
 --}}}
 -- sleep(sec) {{{
-function sleep(sec)
+local function sleep(sec)
 
     socket.select(nil, nil, sec)
 
 end --}}}
+
+--------------------------------------------------------------------------------
+-- HANDLE CLIENT REQUESTS ------------------------------------------------------
+--------------------------------------------------------------------------------
+--[[
+:only
+:update|only|vert terminal ++cols=200 luae Export_LISTEN.lua
+    :update|     terminal   luae Export_TEST.lua    TESTING
+:update|!start /b                     luae Export_TEST.lua    TESTING
+:update|!start /b                     luae Export_TEST.lua    TERMINATING
+--]]
+-- JSON {{{
+local JSON =  dofile(script_dir.."/lib/JSON.lua")
+
+      JSON.strictTypes = true -- to support metatable
+--}}}
 -- update_GRID_CELLS {{{
-local req_count  = 0
-local req_label  = ""
-local req        = ""
+
+local req_count        = 0
+local req_label        = ""
+local req              = ""
 
 local REQ_LABEL_EVENT  = "EVENT"
 local REQ_LABEL_STREAM = "STREAM"
 
-local GRID_COL_MAX  = 4
-local GRID_COL_SEP  = N..".."
-local GRID_COL_SIZE = 50
+local GRID_COL_SEP     = N..".."
+local GRID_CELLS       = {}
+local GRID_COL_SIZE    = {}
 
-local GRID_CELLS = {}
-local          str = ""
-local          col = 0
-local          row = 0
+local function update_GRID_CELLS(o,parent_k)
 
-function update_GRID_CELLS(o,parent_k)
-
+--print("update_GRID_CELLS:"..LF..JSON:encode_pretty(o))--FIXME
     for k,v in pairs(o) do
 
         k   = parent_k
         and  (parent_k.."."..k)
         or                   k
+--print("k=["..      k  .."]")--FIXME
+--print("v=[".. type(v) .."]")--FIXME
+--print("v.val=[".. type(v.val) .."]")--FIXME
 
-        if((type(v) == "string") or (type(v) == "number") or (type(v) == "boolean")) then
+        if((type(v.val) == "string") or (type(v.val) == "number") or (type(v.val) == "boolean")) then
 
             -- CELL FORMAT
-            v  = (type(v) == "number" ) and          string.format("%16.2f",          v                   )
-            or   (type(v) == "boolean") and          string.format("%16s"  ,          v and "YES" or "NO" )
-            or                                       string.format("%16s"  , tostring(v)                  )
+--[[--{{{
+            local val
+            =  (type(v.val) == "number" ) and string.format("%16.2f",          v.val                   )
+            or (type(v.val) == "boolean") and string.format("%16s"  ,          v.val and "YES" or "NO" )
+            or                                string.format("%16s"  , tostring(v.val)                  )
+--}}}--]]
 
-            local cell = string.format(" %-20s = %-25s ", k, v)
+            local val
+            =  (type(v.val) == "number" ) and string.format("%2.2f" ,          v.val                   )
+            or (type(v.val) == "boolean") and string.format("%s"    ,          v.val and "YES" or "NO" )
+            or                                string.format("%s"    , tostring(v.val)                  )
+
+--{{{
+--          local r_c  = string.format("(%2d %2d) "     , v.row, v.col)
+--          local cell = string.format(" %-25s = %-25s ", r_c..k, val)
+--          local cell = string.format(" %s = %-s "     , r_c..k, val)
+
+--          local cell = string.format(" %s = %s "      ,      k, val)
+--          local cell = string.format(" %-25s = %-25s ",      k, val)
+--          local cell = string.format( " %25s = %s "   ,      k, val)
+--}}}
+            local cell = string.format( " %25s = %-25s ",      k, val)
+            local cell = string.format( " %15s = %-15s ",      k, val)
 
             -- COLOR
             local new_item   =              not  GRID_CELLS[k]
@@ -147,9 +190,23 @@ function update_GRID_CELLS(o,parent_k)
             or                    N
 
             -- CELL CACHE
-            if GRID_CELLS[k] then GRID_CELLS[k] = { cell = cell , color = color }
-            else                  GRID_CELLS[k] = { cell = cell , color = color }
+            if GRID_CELLS[k] then GRID_CELLS  [k] = { cell=cell , row=v.row , col=v.col , color = color }
+            else                  GRID_CELLS  [k] = { cell=cell , row=v.row , col=v.col , color = color }
             end
+--print("@@@ GRID_CELLS["..k.."]:"..LF..JSON:encode_pretty(GRID_CELLS[k]))
+
+            -- LOG CHANGE
+            if new_item then
+                Listen_log("NEW ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
+            elseif not same_value then
+                Listen_log("MOD ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
+            end
+
+            -- KEEP TRACK OF EACH COLUMN MAX USED LENGTH
+            local col = v.col or 0
+
+            GRID_COL_SIZE[col] = math.max(GRID_COL_SIZE[col] or 0, string.len(cell))
+--print("GRID_COL_SIZE["..  col.."]=["..    GRID_COL_SIZE[col].."]")--FIXME
 
         else
             update_GRID_CELLS(v, k)
@@ -157,158 +214,277 @@ function update_GRID_CELLS(o,parent_k)
 
     end
 
-    str = string.gsub(str, "\n$", "") -- strip ending LF
+--print(G.."XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+--print(G.."@@@ GRID_CELLS["..tostring(GRID_CELLS).."]:"..LF..JSON:encode(GRID_CELLS):gsub("}","}\n"))
+--print(G.."XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
-    return str
 end
 --}}}
 -- format_GRID_CELLS {{{
-function format_GRID_CELLS()
+local timestamp = 0
+local function format_GRID_CELLS(timestamp)
 
-    local str = ""
-    local col = 0
-    local row = 0
+    ----------------------------------------
+    -- GET [row_col_keys] SPECIFIIED ROW,COL
+    ----------------------------------------
+    -- ORDER keys by increasing row,col {{{
+    local function compare_row_col(a,b)
+        local a = GRID_CELLS[a:gsub(".*__","")]
+        local b = GRID_CELLS[b:gsub(".*__","")]
 
+        local result = (a.row and b.row) and (a.row >= b.row)
+        and            (a.col and b.col) and (a.col >= b.col)
+        return result
+    end
+    --}}}
+    --{{{
+    local row_col_keys = {}
     for k,v in pairs(GRID_CELLS) do
-
-            -- CELL ROW COL
-            col =  col + 1
-            if     col > GRID_COL_MAX then str = str..LF          ; col = 1; row = row+1
-            elseif col > 1            then str = str..GRID_COL_SEP
-            end
-
-            str =  str..GRID_CELLS[k].color.."["..GRID_CELLS[k].cell.."]"
-
+        if (v.row and v.col) and (v.row>0 and v.col>0) then
+            local r_c = string.format("(%2d %2d)__", v.row, v.col)
+            table.insert(row_col_keys, r_c..k)
+        end
     end
 
+    table.sort(   row_col_keys--[[, compare_row_col--]])
+--- for i,n in ipairs(row_col_keys) do print(i.." "..n) end
+    for k,v in  pairs(row_col_keys) do row_col_keys[k] = row_col_keys[k]:gsub(".*__","") end
+--- for i,n in ipairs(row_col_keys) do print(i.." "..n) end
+    --}}}
+
+    ----------------------------------------
+    -- DO CELLS WITH A SPECIFIIED ROW,COL---
+    ----------------------------------------
+    --{{{
+    local sep
+    local cell
+    local eol
+
+    local str = ""
+
+    local row = 1
+    local col = 1
+    local idx = 1
+--print("format_GRID_CELLS: #row_col_keys=["..#row_col_keys.."]"..LF..JSON:encode_pretty(row_col_keys):gsub(",",",\n"))--FIXME
+
+    while idx <= #row_col_keys do
+
+        local k = row_col_keys[idx]--:gsub(".*__","")--FIXME
+        local v = GRID_CELLS[k]
+--print("idx=["..idx.."] .. row["..row.."] .. col["..col.."] .. k=["..k.."]")--FIXME
+--print("v:"..JSON:encode(v))
+--print()
+
+        -- CELL OR BLANK {{{
+        if  v.row and (v.row == row)
+        and v.col and (v.col == col)
+        then
+            v.timestamp = timestamp
+            cell        = v.cell; while string.len(cell) <  GRID_COL_SIZE[col] do cell = " "..cell.." " end--FIXME
+            cell        = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",  cell).."]"
+            idx         = idx+1
+        --}}}
+        -- FILL BLANK GRID-CELLS {{{
+        else
+--print("col["..col.."]")--FIXME
+            if GRID_COL_SIZE[col] then
+--print("GRID_COL_SIZE["..  col.."]=["..  GRID_COL_SIZE[col].."]")--FIXME
+                cell = string.format("[%."..GRID_COL_SIZE[col].."s]", GRID_FILL_CHAR)
+            else
+                cell = ""
+            end
+
+            if     (v.row  < row)                   -- missed row
+                or (v.row == row) and (v.col < col) -- missed col
+                then
+                idx         = idx+1
+            end
+        end
+        --}}}
+        -- CONTENT {{{
+        sep      = (col > 1) and string.len(cell)>0 and GRID_COL_SEP or ""
+        eol      = (col == GRID_COL_MAX) and LF                    or ""
+        str      = str .. sep .. cell .. eol
+        --}}}
+        -- NEXT GRID CELL {{{
+        col     = col + 1
+        if  col > GRID_COL_MAX then
+            row = row+1
+            col = 1
+        end
+        --}}}
+    end
+    --}}}
+
+    ----------------------------------------
+    -- DO CELLS MISSING A SPECIFIIED ROW,COL
+    ----------------------------------------
+    --{{{
+    row = row+1
+    col = 1
+    local warn_missin_msg = "xxx MISSING ROW-COL:"
+
+    for k,v in pairs(GRID_CELLS) do
+        k = k:gsub(".*__","")--FIXME
+        if not v.timestamp or (v.timestamp ~= timestamp) then
+            v.timestamp = timestamp
+            cell        = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",v.cell).."]"
+
+            if warn_missin_msg then
+                str = str..LF..warn_missin_msg..LF
+                warn_missin_msg = nil -- consume displayed warn_missin_msg
+            end
+
+            -- CONTENT {{{
+            sep      = (col > 1            ) and GRID_COL_SEP or ""
+            eol      = (col == GRID_COL_MAX) and LF           or ""
+            str      = str .. sep .. cell .. eol
+            --}}}
+
+            -- NEXT GRID CELL {{{
+            col    = col + 1
+            if col > GRID_COL_MAX then
+               row = row+1
+               col = 1
+            end
+            --}}}
+        end
+    end
+    --}}}
+
+    str = string.gsub(str, "[ \n]$", "")
     return str
 end
 --}}}
+local listen_done_close_socket_and_log_file
+-- listen {{{
+local function listen()
 
-local JSON =  dofile(script_dir.."/lib/JSON.lua")
-      JSON.strictTypes = true -- to support metatable
-
-while req       ~= QUIT do
---{{{
-    local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
-    req          = ""
-    repeat
-        ------------------------------------------------------------------------
-        -- READ CLIENT REQUEST -------------------------------------------------
-        ------------------------------------------------------------------------
-        buf,err = client:receive()
-        if  err then
-
-            Listen_log( LOG_FOLD_CLOSE )
-
-            msg = LF.."--- Export_LISTEN.lua: "..tostring(err)
-            Listen_log(msg)
-            print(Y .. msg)
-
-            Listen_log( LOG_FOLD_OPEN  )
-        ------------------------------------------------------------------------
-        -- HANDLE CLIENT REQUEST -----------------------------------------------
-        ------------------------------------------------------------------------
-        else
-            req = string.gsub(buf, "[ \n]$", "")
-
-            if req == QUIT then
+    while req       ~= QUIT do
+        --{{{
+        local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
+        req          = ""
+        repeat
+            ------------------------------------------------------------------------
+            -- READ CLIENT REQUEST -------------------------------------------------
+            ------------------------------------------------------------------------
+            buf,err = client:receive()
+            ------------------------------------------------------------------------
+            -- HANDLE SOCKET ERROR -------------------------------------------------
+            ------------------------------------------------------------------------
+            --{{{
+            if  err then
 
                 Listen_log( LOG_FOLD_CLOSE )
 
-                msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER"
+                msg = LF.."--- Export_LISTEN.lua: "..tostring(err)
                 Listen_log(msg)
-                print(R .. msg)
+                print(Y .. msg)
 
+                Listen_log( LOG_FOLD_OPEN  )
+            --}}}
+            ------------------------------------------------------------------------
+            -- HANDLE CLIENT REQUEST -----------------------------------------------
+            ------------------------------------------------------------------------
+            --{{{
             else
-                local     req_table = string_split(req,"\n") -- REQUEST LINES
+                req = string.gsub(buf, "[ \n]$", "")
 
-                local next_event
-                =  (string.gsub(req, "Export_task_ActivityNextEvent.*", "NEXT_EVENT") == "NEXT_EVENT")
-                or (string.gsub(req, "Export_task_coroutine_handle.*" , "NEXT_EVENT") == "NEXT_EVENT")
+                --------------------------------------------------------------------
+                -- QUIT SOCKET SESSION ---------------------------------------------
+                --------------------------------------------------------------------
+                if req == QUIT then
+                --{{{
 
-                if    next_event then
-                    Listen_log(  LOG_FOLD_CLOSE )
-                    print(CLEAR)
+                    Listen_log( LOG_FOLD_CLOSE )
 
-                    req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0 ) -- number-arg
-
-                    req_label =  string.find(req, "Export_task_ActivityNextEvent") and REQ_LABEL_EVENT
-                    or           string.find(req, "Export_task_coroutine_handle" ) and REQ_LABEL_STREAM
-
-
-                    msg = string.format("[%d] %s", req_count, req_label)
-                    Listen_log(   msg)
-                    print     (M..msg)
-
-                end
-
-                for i=1, #req_table do
-
-                    if((req_count > 0) and (req_count % 10 == 0)) then
-                        Listen_log("")
-                    end -- SEPARATOR
-
-                    req =      req_table[i]
---print("@@@ req=["..req.."]")
-
-                    --[[ [msg] --{{{
-                    msg = string.format("msg=[%s]", tostring(req))
+                    msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER"
                     Listen_log(msg)
-                    print(G .. msg)
-                    --}}}--]]
+                    print(R .. msg)
 
-                    ---[[ [JSON] --{{{
-                    if string.find(req, "{") then
+                --}}}
+                --------------------------------------------------------------------
+                -- HANDLE STREAM AND EVENT REQUESTS --------------------------------
+                --------------------------------------------------------------------
+                else
+                    -- REQUEST LINE {{{
+                    local     req_table = string_split(req,"\n")
 
-                        local decoded_req       = JSON:decode          (        req)
-                        local        json_VALUE = JSON:encode          (decoded_req)
-                        local pretty_json_VALUE = JSON:encode_pretty   (decoded_req)
---print("@@@ json_VALUE=["..json_VALUE.."]")
-                                                  update_GRID_CELLS(decoded_req)
-                        local grid_str          = format_GRID_CELLS()
+                    --}}}
+                    -- NEW EVENT OR STREAM-DATA {{{
+                    local next_event
+                    =  (string.gsub(req, "Export_task_ActivityNextEvent.*", "NEXT_EVENT") == "NEXT_EVENT")
+                    or (string.gsub(req, "Export_task_coroutine_handle.*" , "NEXT_EVENT") == "NEXT_EVENT")
 
-                        Listen_log(pretty_json_VALUE)
+                    if next_event then
 
-                        print(Y .. grid_str)
+                        Listen_log(  LOG_FOLD_CLOSE )
+
+                        req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0 ) -- number-arg
+
+                        req_label =  string.find(req, "Export_task_ActivityNextEvent") and REQ_LABEL_EVENT
+                        or           string.find(req, "Export_task_coroutine_handle" ) and REQ_LABEL_STREAM
 
                     end
-                    --}}}--]]
-                end
+                    --}}}
+                    -- REQUEST LINES {{{
+                    for i=1, #req_table do
 
-                if next_event then
-                    Listen_log(  LOG_FOLD_OPEN  )
+                        req =      req_table[i]
+
+                        if string.find(req, "{") then
+                            local decoded_req       = JSON:decode          (        req)
+
+                            update_GRID_CELLS(decoded_req)
+
+                            timestamp      = timestamp + 1
+                            local grid_str = format_GRID_CELLS(timestamp)
+
+                            print(CLEAR)
+                            print( grid_str )
+
+                        end
+                    end
+                    --}}}
                 end
+                --}}}
             end
-        end
-    until err or req==QUIT 
+        until err or req==QUIT
 
+    --}}}
+    end
+
+    listen_done_close_socket_and_log_file()
+
+end
+--}}}
+-- listen_done_close_socket_and_log_file {{{
+function listen_done_close_socket_and_log_file()
+    msg = LF
+    .."------------------------------------------------------------------------"..LF
+    .."--- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port          ..LF
+    .."------------------------------------------------------------------------"..LF
+    Listen_log(msg)
+    print(R .. msg)
+
+    if  client then
+        client:close()
+        client = nil
+    end
+
+    if  log_file then
+        log_file:close()
+        log_file = nil
+    end
+
+    sleep(2)
 end
 --}}}
 
 --------------------------------------------------------------------------------
--- CLOSE SERVER ----------------------------------------------------------------
+-- START SERVER ----------------------------------------------------------------
 --------------------------------------------------------------------------------
---{{{
-msg = LF
-.."------------------------------------------------------------------------"..LF
-.."--- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port          ..LF
-.."------------------------------------------------------------------------"..LF
-Listen_log(msg)
-print(R .. msg)
-
-if  client then
-    client:close()
-    client = nil
-end
-
-if  log_file then
-    log_file:close()
-    log_file = nil
-end
-
-sleep(2)
---}}}
+listen()
 
 --[[ vim
     :only
