@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220813:02h:22) --
+-- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220814:19h:11) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_log.lua")
 
@@ -25,33 +25,6 @@ end --}}}
 -- Export_log {{{
 function Export_log(line)
     if   Export_log_DISABLED then return end
-
---[[ CALLERS of Export_log: {{{ --FIXME use log_this to avoid calling Export_log would be best
-/^[^/]*\<Export_log\>\s*[(=),}]
-
-Export_log.lua:18  log_time:26: function Export_log(line)
-
-Export_socket.lua:31  socket_connect:33:     Export_log(msg)
-Export_socket.lua:31  socket_connect:39:         Export_log(msg)
-Export_socket.lua:53  socket_send:57:         Export_log(msg)
-Export_socket.lua:53  socket_send:68:             Export_log(msg)
-Export_socket.lua:80  socket_send_to_TARGET:97:             Export_log(msg)
-
-Export_task.lua:70  Export_task_Start:74:     Export_log(msg)
-Export_task.lua:91  Export_task_ActivityNextEvent:94:     Export_log( msg)
-Export_task.lua:91  Export_task_ActivityNextEvent:101:     Export_log( msg)
-Export_task.lua:91  Export_task_ActivityNextEvent:113: --            Export_log( msg)
-Export_task.lua:91  Export_task_ActivityNextEvent:120: --            Export_log( msg)
-Export_task.lua:132  Export_task_Stop:136:     Export_log(msg)
-Export_task.lua:151  Export_task_coroutine_handle:156:     Export_log( msg)
-Export_task.lua:151  Export_task_coroutine_handle:164:     Export_log (msg)
-Export_task.lua:151  Export_task_coroutine_handle:171:     Export_log( msg)
-Export_task.lua:184  Export_task_coroutine_start:187:     Export_log(msg)
-Export_task.lua:198  CoroutineResume:201: --  Export_log(msg)
-
-Export_TEST.lua:119  sleep:136:     Export_log(msg)
-
-}}}--]]
 
     -- [log_file ../Logs/Export.log] {{{
     if not log_file_name then
