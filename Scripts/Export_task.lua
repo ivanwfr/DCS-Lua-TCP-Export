@@ -1,41 +1,36 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220814:03h:46) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220814:19h:14) --
 --------------------------------------------------------------------------------
-print("@@@ LOADING Export_task.lua")
+--int("@@@ LOADING Export_task.lua")
+print("@ LOADING Export_task.lua: arg[1]=[".. tostring(arg and arg[1]) .."]:")
 
-local GRID_ROW_COL
-    = { MTime      ={row= 1,col=1} , SeaAlt         ={row= 1,col=2} ,       GndAlt     ={row= 1,col=3}
-    ,   Bank       ={row= 2,col=1} , LatLongAlt_Alt ={row= 2,col=2} ,       Position_x ={row= 2,col=3}
-    ,   Heading    ={row= 3,col=1} , LatLongAlt_Lat ={row= 3,col=2} ,       Position_y ={row= 3,col=3}
-    ,   Pitch      ={row= 4,col=1} , LatLongAlt_Long={row= 4,col=2} ,       Position_z ={row= 4,col=3}
-    ,   Name       ={row= 5,col=1} ,       GroupName={row= 5,col=2} ,       Coalition  ={row= 5,col=3}
-    ,   Country    ={row= 6,col=1} ,       UnitName ={row= 6,col=2} ,       CoalitionID={row= 6,col=3}
-    ,   label      ={row= 7,col=3}
-    ,                                    Type_level1={row= 8,col=2} ,       Type_level3={row= 8,col=3}
-    ,                                    Type_level2={row= 9,col=2} ,       Type_level4={row= 9,col=3}
-    ,   Flags_AI_ON={row=10,col=1} , Flags_IRJamming={row=10,col=2} , Flags_RadarActive={row=10,col=3}
-    ,   Flags_Born ={row=11,col=1} , Flags_Invisible={row=11,col=2} , Flags_Static     ={row=11,col=3}
-    ,   Flags_Human={row=12,col=1} , Flags_Jamming  ={row=12,col=2}
-    }
+-----------------------------------------------------------
+-- CUSTOMIZABLE LISTENER-OUTPUT LAYOUT-TEMPLATE -----------
+-----------------------------------------------------------
+local GRID_ROW_COL_TEXT    = ""
+.."    MTime        SeaAlt           GndAlt             \n"
+.."    Bank         LatLongAlt_Alt   Position_x         \n"
+.."    Heading      LatLongAlt_Lat   Position_y         \n"
+.."    Pitch        LatLongAlt_Long  Position_z         \n"
+.."    Name         GroupName        Coalition          \n"
+.."    Country      UnitName         CoalitionID        \n"
+.."    label        -----------      -----------        \n"
+.."    -----------  Type_level1      Type_level3        \n"
+.."    -----------  Type_level2      Type_level4        \n"
+.."    Flags_AI_ON  Flags_IRJamming  Flags_RadarActive  \n"
+.."    Flags_Born   Flags_Invisible  Flags_Static       \n"
+.."    Flags_Human  Flags_Jamming                       \n"
 
---[[
-local log_this = true
---]]
+--------------------------------
+-- RECURRING DATA STREAM -------
+--------------------------------
+local ACTIVITY_START_DELAY = 0.5
+local ACTIVITY_INTERVAL    = 1.0 -- SET TO 0 TO DISABLE
 
---------------------------------------------------------------------------------
------------------------------------------------------------------- PARAMETERS --
---------------------------------------------------------------------------------
-local LOG_FOLD_OPEN           = "{{{"
-local ACTIVITY_START_DELAY    = 0.5
-local ACTIVITY_INTERVAL       = 2.0
-
-
-local LF                      = "\n"
-
-local LOG_FOLD_CLOSE          = "}}}"
+--local log_this = true
 
 --------------------------------------------------------------------------------
---------------------------------------------- ENVIRONMENT [script_dir] [JSON] --
+-- ENVIRONMENT [script_dir] [JSON] ---------------------------------------------
 --------------------------------------------------------------------------------
 --{{{
 local               script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
@@ -43,10 +38,63 @@ local               script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved G
              dofile(script_dir.."/Export_socket.lua")
 local JSON = dofile(script_dir.."/lib/JSON.lua")
       JSON.strictTypes = true -- to support metatable
+
+local LF              = "\n"
+local LOG_FOLD_OPEN  = "{{{"
+local LOG_FOLD_CLOSE = "}}}"
+--}}}
+
+local GRID_ROW_COL_TABLE = {}
+
+-- string_split {{{
+function string_split(s, sep)
+   local   fields = {}
+   local      sep = sep or ":"
+   local  pattern = "([^"..sep.."]+)"
+   s:gsub(pattern , function(c) fields[#fields+1] = c end)
+   return  fields
+end
+--}}}
+-- build_GRID_ROW_COL_TABLE {{{
+local function build_GRID_ROW_COL_TABLE()
+
+--[[
+:only|update|terminal luae % check_GRID_ROW_COL_TABLE
+:only 
+--]]
+
+    local       rows = string_split(GRID_ROW_COL_TEXT, LF)
+print("...#rows["..#rows.."]")
+
+    for row=1, #rows do
+        local       cols = string_split(rows[row], " ")
+        for col=1, #cols do
+            local                 label = cols[col]
+
+            -- skip empty cell "-----------" placeholder
+            if label:gsub("-","") ~= "" then
+                GRID_ROW_COL_TABLE[ label ] = { row=row , col=col }
+            end
+        end
+    end
+
+  print("GRID_ROW_COL_TABLE:"..LOG_FOLD_OPEN..LF..JSON:encode       (GRID_ROW_COL_TABLE):gsub("{\n",""):gsub("},","}\n,")..LF..LOG_FOLD_CLOSE)
+
+end
+--}}}
+-- check_GRID_ROW_COL_TABLE {{{
+if arg and arg[1] and (arg[1] == "check_GRID_ROW_COL_TABLE") then
+
+    if #GRID_ROW_COL_TABLE == 0 then build_GRID_ROW_COL_TABLE() end
+
+    print("@ DONE arg[1]:")
+    print()
+    os.exit()
+end
 --}}}
 
 --------------------------------------------------------------------------------
------------------------------------------------------------------------- UTIL --
+-- UTIL ------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- get_time_and_altitude {{{
 function get_time_and_altitude()
@@ -59,22 +107,11 @@ function get_time_and_altitude()
     = {   MTime = MTime
     ,    SeaAlt = SeaAlt
     ,    GndAlt = GndAlt }
-print("get_time_and_altitude: o:"..LF..JSON:encode_pretty(o))--FIXME
 
-    local grid_cells = add_object_to_GRID_CELLS( o )
-print("get_time_and_altitude: grid_cells:"..LF..JSON:encode_pretty(grid_cells))--FIXME
+    local  grid_cells = add_object_to_GRID_CELLS(o)
 
---[[
-/MTime\|SeaAlt\|GndAlt
---]]
-    local json = JSON:encode( grid_cells )
-
-    local str = ""
-    ..string.format( " MTime=[%4d]" ,  MTime)
-    ..string.format(" SeaAlt=[%5dm]", SeaAlt)
-    ..string.format(" GndAlt=[%5dm]", GndAlt)
-
-    return str, json
+    local  json       = JSON:encode(grid_cells)
+    return json
 end
 --}}}
 -- add_object_to_GRID_CELLS {{{
@@ -109,8 +146,11 @@ function add_object_to_GRID_CELLS(o, parent_k)
             and   string.format("%.2f",          v )
             or    string.format("%s"  , tostring(v))
 
-            local     row = (GRID_ROW_COL[k] and GRID_ROW_COL[k].row) or 0
-            local     col = (GRID_ROW_COL[k] and GRID_ROW_COL[k].col) or 0
+            if              #GRID_ROW_COL_TABLE == 0 then build_GRID_ROW_COL_TABLE()       end
+
+            local     row = (GRID_ROW_COL_TABLE[k]    and       GRID_ROW_COL_TABLE[k].row) or 0
+            local     col = (GRID_ROW_COL_TABLE[k]    and       GRID_ROW_COL_TABLE[k].col) or 0
+
             GRID_CELLS[k] = { val=v , row=row , col=col }
         end
 
@@ -121,7 +161,7 @@ end
 --}}}
 
 --------------------------------------------------------------------------------
----------------------------------------------------------------- EXPORT CYCLE --
+-- EXPORT CYCLE ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 function Export_task_Start() ----------------- CONNECT localhost:5001 ------------{{{
 print("Export_task_Start")
@@ -190,7 +230,7 @@ end
 --}}}
 
 --------------------------------------------------------------------------------
-------------------------------------------------------- DATA STREAM COROUTINE --
+-- DATA STREAM COROUTINE -------------------------------------------------------
 --------------------------------------------------------------------------------
 function Export_task_coroutine_handle(t) ----- STREAMING STEP --------------------{{{
 
@@ -201,14 +241,7 @@ repeat
     socket_send(msg)
     print      (msg)
 
-    str, json = get_time_and_altitude()
-
---[[--{{{
-    msg =       str
-    Export_log (msg)
-    print      (msg)
-    socket_send(msg)
---}}}--]]
+    json = get_time_and_altitude()
 
 ---[[--{{{
     msg   =     json
@@ -241,7 +274,9 @@ function Export_task_coroutine_start()   ----- STREAMING START -----------------
     CoroutineIndex              = 1
     Coroutines[CoroutineIndex]  = coroutine.create(Export_task_coroutine_handle)
 
-    LoCreateCoroutineActivity(CoroutineIndex, ACTIVITY_START_DELAY, ACTIVITY_INTERVAL)
+    if ACTIVITY_INTERVAL > 0 then
+        LoCreateCoroutineActivity(CoroutineIndex, ACTIVITY_START_DELAY, ACTIVITY_INTERVAL)
+    end
 end
 --}}}
 
