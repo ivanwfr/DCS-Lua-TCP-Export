@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220813:00h:38) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220813:18h:43) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
@@ -12,7 +12,7 @@ print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
       print(" "..arg[0].." TERMINATING")
       return(1)
   end
-  ACTIVITY_COUNT = 5 --FIXME
+  ACTIVITY_COUNT = 1 --FIXME
 
 --- TEST DATA 
 --{{{
@@ -73,7 +73,21 @@ print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
               label= "ACTIVITY[98] k=[16783616]"
     }
 --}}}--]]
+--[[
+/\v<(Alt|Lat|Long)\w*
+/\v<(YES|NO)
 
+    [5] EVENT
+    [ Pitch          =       0.19 ]..[ MTime           =   2.00 ]..[ label           = ACTIVITY[98] k=[16783616] ]..[ UnitName          =  New callsign  ]
+    [ CoalitionID    =       2.00 ]..[ Flags.Static    =     NO ]..[ Flags.Born      =              YES          ]..[ Type.level4       =         58.00  ]
+    [ Type.level1    =       1.00 ]..[ SeaAlt          =   3.00 ]..[ Flags.Invisible =               NO          ]..[ Position.z        =     613253.87  ]
+    [ Flags.Jamming  =         NO ]..[ Type.level3     =   6.00 ]..[ Bank            =             0.02          ]..[ Flags.RadarActive =            NO  ]
+    [ Heading        =       5.34 ]..[ Flags.Human     =    YES ]..[ Country         =             2.00          ]..[ LatLongAlt.Long   =         41.56  ]
+    [ LatLongAlt.Lat =      41.65 ]..[ GroupName       = Hawg-1 ]..[ LatLongAlt.Alt  =           864.88          ]..[ Coalition         =       Enemies  ]
+    [ Type.level2    =       1.00 ]..[ Name            =  A-10C ]..[ GndAlt          =          2003.00          ]..[ Flags.AI_ON       =           YES  ]
+    [ Position.x     = -351660.29 ]..[ Flags.IRJamming =     NO ]..[ Position.y      =           864.88          ]
+
+--]]
 --[[
     :update|     terminal   luae Export_TEST.lua    TESTING
 --]]
@@ -111,7 +125,9 @@ if TESTING then
 
     LuaExportStop()
 
-    print("# ...done")
+    print("-------------------------------------------------------------------")
+    print("xxx Export_TEST.lua ["..(arg[1] and arg[1] or " ").."] done"        )
+    print("-------------------------------------------------------------------")
 end
 --}}}
 --- UTIL:

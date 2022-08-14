@@ -1,16 +1,21 @@
 --------------------------------------------------------------------------------
--- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220812:23h:45) --
+-- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220813:18h:34) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_socket.lua")
 
 local PORT =  5002
 local HOST = "localhost"
 --[[
+local log_this = true --FIXME
+--]]
+--[[
 local SEND_TO_TARGET = true -- UNCOMMENT TO FORMAT MESSAGES FOR TARGET SCRIPT
 --]]
 
 -- ENVIRONMENT
 --     Export_log.lua {{{
+local LF = "\n"
+
 if not Export_log then
     local  script_dir  = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
     dofile(script_dir.."/Export_log.lua"   )
@@ -30,14 +35,18 @@ end
 -- socket_connect {{{
 function socket_connect()
     local msg = "  TCP CLIENT SOCKET CONNECT"
-    Export_log(msg)
-    print(msg)
+    if log_this then
+        Export_log(msg)
+        print("socket_connect:"..LF..msg)
+    end
 
     c, err = socket.connect(HOST, PORT)
     if err then
         msg = "*** Export_socket .. socket.connect("..HOST.." , "..PORT..") .. err=["..err.."]"
-        Export_log(msg)
-        print(msg)
+        if log_this then
+            Export_log(msg)
+            print("socket_connect:"..LF..msg)
+        end
     end
 
     if   c then c:setoption("tcp-nodelay", true) end
@@ -54,8 +63,10 @@ function socket_send(msg)
 
     if not c then
         local msg = "*** Export_socket .. socket_send .. [NOT CONNECTED]"
-        Export_log(msg)
-        print(msg)
+        if log_this then
+            Export_log(msg)
+            print("socket_send:"..LF..msg)
+        end
 
         return
     end
@@ -65,8 +76,10 @@ function socket_send(msg)
         local cnt, err = c:send(msg.."\n")
         if err then
             local msg = "*** socket_send: cnt=["..tostring(cnt).."] , err=["..tostring(err).."]"
-            Export_log(msg)
-            print(msg)
+            if log_this then
+                Export_log(msg)
+                print("socket_send:"..LF..msg)
+            end
 
             c = nil
         end
@@ -94,8 +107,10 @@ function socket_send_to_TARGET(msg)
         local cnt, err = c:send(buf)
         if err then
             local msg = "*** socket_send_to_TARGET: cnt=["..tostring(cnt).."] , err=["..tostring(err).."]"
-            Export_log(msg)
-            print(msg)
+            if log_this then
+                Export_log(msg)
+                print("socket_send_to_TARGET:"..LF..msg)
+            end
 
             c = nil
         end
