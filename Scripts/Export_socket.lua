@@ -1,15 +1,16 @@
 --------------------------------------------------------------------------------
--- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220813:18h:34) --
+-- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220814:19h:12) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_socket.lua")
 
-local PORT =  5002
-local HOST = "localhost"
---[[
-local log_this = true --FIXME
---]]
+local           PORT =  5002
+local           HOST = "localhost"
 --[[
 local SEND_TO_TARGET = true -- UNCOMMENT TO FORMAT MESSAGES FOR TARGET SCRIPT
+--]]
+
+--[[
+local       log_this = true
 --]]
 
 -- ENVIRONMENT
