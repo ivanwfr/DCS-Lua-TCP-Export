@@ -1,41 +1,43 @@
 --------------------------------------------------------------------------------
--- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220814:19h:11) --
+-- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220816:02h:02) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_log.lua")
 
-local Export_log_DISABLED = true
--- HAVING Listen.log TO SEE WHAT REACHED THE SERVER MAY BE ENOUGH
+local Export_log_DISABLED = true -- @see Listen.log
 
-
-
--- %USERPROFILE%/Saved Games/DCS/Logs/Listen_log
 --{{{
-local script_dir        = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
-local log_file          = nil
-local log_file_name     = nil
+
+local script_dir    = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+local log_file      = nil
+local log_file_name = nil
+
 --}}}
 -- log_time {{{
 function log_time()
-    local curTime      = os.time()
+
+    local curTime =  os.time()
 
     return ""
     .. string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
     .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
-end --}}}
+
+end
+--}}}
 -- Export_log {{{
 function Export_log(line)
+
     if   Export_log_DISABLED then return end
 
-    -- [log_file ../Logs/Export.log] {{{
     if not log_file_name then
         log_file_name   = script_dir.."/../Logs/Export.log"
         log_file        = io.open(log_file_name, "w") -- override log_file
     end
-    --}}}
+
     if  log_file then
         log_file:write(line.."\n")
         log_file:flush()
     end
+
 end
 --}}}
 
