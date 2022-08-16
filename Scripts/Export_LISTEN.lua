@@ -1,7 +1,6 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220814:19h:09) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220816:02h:02) --
 --------------------------------------------------------------------------------
-print("@@@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
 local COLORED        = arg and arg[1] and (arg[1] == "COLORED")
 
@@ -12,7 +11,7 @@ local QUIT           = "quit"
 
 local GRID_COL_MAX   = 3
 local GRID_COL_SIZE  = 50
-local GRID_FILL_CHAR = "--------------------------------------------------------------------------------"
+local GRID_FILL_CHAR = "-------------------------------------------------------"
 
 -- TERMIOS {{{
 local LF             = "\n"
@@ -31,93 +30,54 @@ local     N   = COLORED and (ESC.."[0m"   ) or "" --      NC
 
 print(CLEAR..N.."  N  "..R.." R"..G.." G "..B.."B  "..C.." C"..M.." M "..Y.."Y")
 --}}}
-print(C.."@@@ LOADING Export_LISTEN.lua"..N)
+print(LF..C.."@@@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]"..N)
 
---------------------------------------------------------------------------------
--- %USERPROFILE%/Saved Games/DCS/Logs/Export_log
---------------------------------------------------------------------------------
 --{{{
-local script_dir        = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+local script_dir        = string.gsub(os.getenv("USERPROFILE")
+                        .."/Saved Games/DCS/Scripts", "\\", "/")
+
 local log_file          = nil
 local log_file_name     = nil
 
 --}}}
--- log_time {{{
-local function log_time()
-    local curTime      = os.time()
 
-    return ""
-    .. string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
-    .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
-end --}}}
--- Listen_log {{{
-local function Listen_log(line)
-    -- [log_file ../Logs/Listen.log] {{{
-    if not log_file_name then
-        log_file_name   = script_dir.."/../Logs/Listen.log"
-        log_file        = io.open(log_file_name, "w") -- override log_file
-    end
-    --}}}
-    if  log_file then
-        log_file:write(line.."\n")
-        log_file:flush()
-    end
-end
+---------------------
+-- LOCAL FUNCTIONS --
+---------------------
+--{{{
+local Listen_log
+local format_GRID_CELLS
+local get_row_col_keys
+local handle_request
+local listen
+local listen_done_close_socket_and_log_file
+local log_time
+local sleep
+local string_split
+local table_len
+local update_GRID_CELLS
+
 --}}}
 
 --------------------------------------------------------------------------------
--- BIND SERVER SOCKET ----------------------------------------------------------
+-- BIND SERVER SOCKET .. (lib/socket.lua) --------------------------------------
 --------------------------------------------------------------------------------
--- lib/socket.lua {{{
+--{{{
 if not socket then
-    local  script_dir  = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+    local  script_dir = string.gsub(os.getenv("USERPROFILE") .."/Saved Games/DCS/Scripts", "\\", "/")
     dofile(script_dir.."/lib/socket.lua")
     local  socket = require("socket"    )
 end
 --}}}
--- socket_bind {{{
-local   server =  assert( socket.bind(HOST , PORT))
-local ip, port = server:getsockname()
-
-local msg = LF
-.."------------------------------------------------------------------------"..LF
-.."--- Export_LISTEN.lua: .. LISTENING IP="..ip.." . port=".. port          ..LF
-.."------------------------------------------------------------------------"
-Listen_log(msg)
-print     (msg)
-
-Listen_log( LOG_FOLD_OPEN  )
-
---}}}
-
-
---------------------------------------------------------------------------------
--- UTIL ------------------------------------------------------------------------
---------------------------------------------------------------------------------
--- string_split(s, sep) {{{
-local function string_split(s, sep)
-   local   fields = {}
-   local      sep = sep or ":"
-   local  pattern = "([^"..sep.."]+)"
-   s:gsub(pattern , function(c) fields[#fields+1] = c end)
-   return  fields
-end
---}}}
--- sleep(sec) {{{
-local function sleep(sec)
-
-    socket.select(nil, nil, sec)
-
-end --}}}
-
---------------------------------------------------------------------------------
--- HANDLE CLIENT REQUESTS ------------------------------------------------------
---------------------------------------------------------------------------------
 -- JSON {{{
 local JSON =  dofile(script_dir.."/lib/JSON.lua")
 
       JSON.strictTypes = true -- to support metatable
 --}}}
+
+--------------------------------------------------------------------------------
+-- UPDATE AND FORMAT DATA
+--------------------------------------------------------------------------------
 -- update_GRID_CELLS {{{
 
 local req_count        = 0
@@ -128,10 +88,12 @@ local REQ_LABEL_EVENT  = "EVENT"
 local REQ_LABEL_STREAM = "STREAM"
 
 local GRID_COL_SEP     = N..".."
+
 local GRID_CELLS       = {}
 local GRID_COL_SIZE    = {}
+local row_col_keys     = {}
 
-local function update_GRID_CELLS(o,parent_k)
+function update_GRID_CELLS(o,parent_k)
     for k,v in pairs(o) do
         -------------------
         -- PARENT-CHAIN ---
@@ -148,9 +110,9 @@ local function update_GRID_CELLS(o,parent_k)
         --{{{
         if((type(v.val) == "string") or (type(v.val) == "number") or (type(v.val) == "boolean")) then
 
-            --------------
-            -- CELL FORMAT
-            --------------
+            -------------------------------------------
+            -- CELL FORMAT -- f( number..not number) --
+            -------------------------------------------
             local val
             =  (type(v.val) == "number" ) and string.format("%2.2f" ,          v.val                   )
             or (type(v.val) == "boolean") and string.format("%s"    ,          v.val and "YES" or "NO" )
@@ -158,21 +120,13 @@ local function update_GRID_CELLS(o,parent_k)
 
             local cell                      = string.format(" %15s = %-15s ", k, val)
 
-            --------------
-            -- COLOR -----
-            --------------
+            -------------------------------------------
+            -- COLOR ------------ f(new value type) ---
+            -------------------------------------------
             local new_item   =              not  GRID_CELLS[k]
             local same_value = not new_item and (GRID_CELLS[k].cell == cell)
             local stream_val = req_label == REQ_LABEL_STREAM
             local event_data = req_label == REQ_LABEL_EVENT
-
---[[
-            local color
-            =      new_item   and N
-            or    (stream_val and G or Y)
-            or    (event_data and B or C)
-            or                    N
---]]
 
             local color
             =      new_item   and                 Y
@@ -180,16 +134,22 @@ local function update_GRID_CELLS(o,parent_k)
             or     event_data and (same_value and B or C)
             or                                    N
 
-            --------------
-            -- CELL CACHE
-            --------------
-            if GRID_CELLS[k] then GRID_CELLS  [k] = { cell=cell , row=v.row , col=v.col , color = color }
-            else                  GRID_CELLS  [k] = { cell=cell , row=v.row , col=v.col , color = color }
+            -------------------------------------------
+            -- CELL CACHE ----------- f(row col val) --
+            -------------------------------------------
+            if GRID_CELLS[k] then
+                local old_cell = GRID_CELLS[k]
+                if    old_cell.row ~= v.row
+                or    old_cell.col ~= v.col
+                then
+                    row_col_keys = {} -- because ROW,COL has changed
+                end
             end
+            GRID_CELLS  [k] = { cell=cell , row=v.row , col=v.col , color = color }
 
-            --------------
-            -- LOG CHANGE
-            --------------
+            -------------------------------------------
+            -- LOG CHANGES ----------------------------
+            -------------------------------------------
             if new_item then
                 Listen_log("NEW ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
             elseif not same_value then
@@ -197,7 +157,7 @@ local function update_GRID_CELLS(o,parent_k)
             end
 
             --------------------------------------------
-            -- KEEP TRACK OF EACH COLUMN MAX USED LENGTH
+            -- GRID-COLUMN MAX WIDTH -------------------
             --------------------------------------------
             local col = v.col or 0
 
@@ -217,21 +177,21 @@ local function update_GRID_CELLS(o,parent_k)
 end
 --}}}
 -- table_len {{{
-local function table_len(table)
+function table_len(table)
     local len = 0
     for _,_ in pairs(table) do len = len + 1 end
     return len
 end
 --}}}
 -- get_row_col_keys {{{
-local row_col_keys = {}
-local function get_row_col_keys(grid_cells)
+function get_row_col_keys(grid_cells)
 
     local grid_cells_len = table_len(grid_cells)
 --print("get_row_col_keys("..grid_cells_len.." grid_cells):")
 
     if #row_col_keys >= grid_cells_len then
 --print("get_row_col_keys: ...OLD "..#row_col_keys.."/"..grid_cells_len.." row_col_keys):")
+
         return row_col_keys
     end
 
@@ -242,6 +202,7 @@ local function get_row_col_keys(grid_cells)
     for k,v in pairs(grid_cells) do
         if (v.row and v.col) and (v.row>0 and v.col>0) then
             local r_c = string.format("(%2d %2d)__", v.row, v.col)
+
             table.insert(row_col_keys, r_c..k)
         end
     end
@@ -251,7 +212,9 @@ local function get_row_col_keys(grid_cells)
 
     -- clear alphanumeric row_col prefix
     for k,v in  pairs(row_col_keys) do
+
         row_col_keys[k] = row_col_keys[k]:gsub(".*__","")
+
     end
 
 --print("get_row_col_keys: ...NEW "..#row_col_keys.."/"..grid_cells_len.." row_col_keys):")
@@ -260,13 +223,12 @@ end
 --}}}
 -- format_GRID_CELLS {{{
 local timestamp = 0
-local function format_GRID_CELLS(timestamp)
+function format_GRID_CELLS(timestamp)
 
     ----------------------------------------
     -- GET [row_col_keys] SPECIFIIED ROW,COL
     ----------------------------------------
-    local grid_cells_len =        table_len( GRID_CELLS )
-    local row_col_keys   = get_row_col_keys( GRID_CELLS )
+    local   row_col_keys = get_row_col_keys( GRID_CELLS )
 
     ----------------------------------------
     -- DO CELLS WITH A SPECIFIIED ROW,COL---
@@ -335,21 +297,21 @@ local function format_GRID_CELLS(timestamp)
     --{{{
     row = row+1
     col = 1
-    local warn_missin_msg = "xxx MISSING ROW-COL:"
+    local warn_missing_msg = "xxx MISSING ROW-COL from Export_task.GRID_ROW_COL_TEXT:"
 
     for k,v in pairs(GRID_CELLS) do
         if not v.timestamp or (v.timestamp ~= timestamp) then
-            -- [warn_missin_msg] {{{
+            -- [warn_missing_msg] {{{
             v.timestamp = timestamp
             if GRID_COL_SIZE[col] then
                 cell        = v.color.."["..string.format("%-"..GRID_COL_SIZE[col].."s",v.cell).."]"
             else
                 cell        = v.color.."["..                                            v.cell .."]"
             end
-            if warn_missin_msg then
-                str = str..LF..warn_missin_msg..LF
+            if warn_missing_msg then
+                str = str..LF..warn_missing_msg..LF
 
-                warn_missin_msg = nil -- consume displayed warn_missin_msg
+                warn_missing_msg = nil -- consume displayed warn_missing_msg
             end
             --}}}
             -- CONTENT {{{
@@ -375,9 +337,22 @@ local function format_GRID_CELLS(timestamp)
     return str
 end
 --}}}
-local listen_done_close_socket_and_log_file
+
+--------------------------------------------------------------------------------
+-- HANDLE CLIENT REQUESTS
+--------------------------------------------------------------------------------
 -- listen {{{
-local function listen()
+function listen()
+
+    local   server =  assert( socket.bind(HOST , PORT))
+    local ip, port = server:getsockname()
+
+    local msg = LF
+    .."------------------------------------------------------------------------"..LF
+    .."--- Export_LISTEN.lua: .. LISTENING IP="..ip.." . port=".. port          ..LF
+    .."------------------------------------------------------------------------"
+    Listen_log(msg)
+    print     (msg)
 
     while req       ~= QUIT do
         ---------------------------
@@ -386,6 +361,9 @@ local function listen()
         --{{{
         local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
 
+        msg = "Export_LISTEN.lua .. socket_accept .. "..log_time()..":"
+        Listen_log(msg)
+        print(Y .. msg)
         --}}}
 
         ---------------------------
@@ -398,6 +376,7 @@ local function listen()
             -- READ CLIENT REQUEST -------------------------------------------------
             ------------------------------------------------------------------------
             buf,err = client:receive()
+
             ------------------------------------------------------------------------
             -- HANDLE SOCKET ERROR -------------------------------------------------
             ------------------------------------------------------------------------
@@ -410,8 +389,8 @@ local function listen()
                 Listen_log(msg)
                 print(Y .. msg)
 
-                Listen_log( LOG_FOLD_OPEN  )
             --}}}
+
             ------------------------------------------------------------------------
             -- HANDLE CLIENT REQUEST -----------------------------------------------
             ------------------------------------------------------------------------
@@ -419,68 +398,22 @@ local function listen()
             else
                 req = string.gsub(buf, "[ \n]$", "")
 
-                --------------------------------------------------------------------
-                -- QUIT SOCKET SESSION ---------------------------------------------
-                --------------------------------------------------------------------
                 if req == QUIT then
-                --{{{
 
                     Listen_log( LOG_FOLD_CLOSE )
 
-                    msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER"
+                    msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER .... "..log_time()..":"
                     Listen_log(msg)
                     print(R .. msg)
 
-                --}}}
-                --------------------------------------------------------------------
-                -- HANDLE STREAM AND EVENT REQUESTS --------------------------------
-                --------------------------------------------------------------------
                 else
-                    -- NEW EVENT OR STREAM-DATA {{{
-                    local next_event
-                    =  (string.gsub(req, "Export_task_ActivityNextEvent.*", "NEXT_EVENT") == "NEXT_EVENT")
-                    or (string.gsub(req, "Export_task_coroutine_handle.*" , "NEXT_EVENT") == "NEXT_EVENT")
+                    handle_request( req )
 
-                    if next_event then
-
-                        Listen_log(  LOG_FOLD_CLOSE )
-                        Listen_log(  LOG_FOLD_OPEN  )
-
-                        req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0 ) -- number-arg
-
-                        req_label =  string.find(req, "Export_task_ActivityNextEvent") and REQ_LABEL_EVENT
-                        or           string.find(req, "Export_task_coroutine_handle" ) and REQ_LABEL_STREAM
-
-                    end
-                    --}}}
-                    -- REQUEST LINES {{{
-                    local     req_table = string_split(req,"\n")
-                    for i=1, #req_table do
-
-                        req =      req_table[i]
-
-                        if string.find(req, "{") then
-                            local decoded_req       = JSON:decode          (        req)
-
-                            update_GRID_CELLS(decoded_req)
-
-                            timestamp      = timestamp + 1
-                            local grid_str = format_GRID_CELLS(timestamp)
-
-                            print(CLEAR)
-
-                            if not COLORED then print(req_label) end
-
-                            print( grid_str )
-
-                        end
-                    end
-                    --}}}
                 end
-                --}}}
             end
-        until err or req==QUIT
+            --}}}
 
+        until err or req==QUIT
         --}}}
 
     end
@@ -489,14 +422,75 @@ local function listen()
     -- CLOSE CLIENT CONNECTION ----
     -------------------------------
     --{{{
-    listen_done_close_socket_and_log_file()
+    listen_done_close_socket_and_log_file(ip,port)
 
     --}}}
 
 end
 --}}}
+-- handle_request {{{
+local string_split
+function handle_request( req )
+    -- NEW EVENT OR STREAM-DATA {{{
+
+    local next_event
+    =  (string.gsub(req, "Export_task_ActivityNextEvent.*", "NEXT_EVENT") == "NEXT_EVENT")
+    or (string.gsub(req, "Export_task_coroutine_handle.*" , "NEXT_EVENT") == "NEXT_EVENT")
+
+    if next_event then
+
+        Listen_log(  LOG_FOLD_CLOSE )
+        Listen_log(  LOG_FOLD_OPEN  )
+
+        req_count = (tonumber(string.gsub(req, "[^0-9\.]", "")) or 0 ) -- number-arg
+
+        req_label =  string.find(req, "Export_task_ActivityNextEvent") and REQ_LABEL_EVENT
+        or           string.find(req, "Export_task_coroutine_handle" ) and REQ_LABEL_STREAM
+
+    end
+
+    --}}}
+    -- REQUEST LINES {{{
+
+    local     req_table = string_split(req,"\n")
+    for i=1, #req_table do
+
+        --------------------------
+        -- JSON STRINGS PARSING --
+        --------------------------
+        req =      req_table[i]
+        if string.find(req, "{") then
+
+            ------------------------------------------------
+            -- COLLECT NEW..OLD [KEYS] AND..OR [VALUES] ----
+            ------------------------------------------------
+            update_GRID_CELLS( JSON:decode(req) )
+
+            ------------------------------------------------
+            -- LAYOUT --------------------------------------
+            ------------------------------------------------
+            timestamp      =                    timestamp+1
+            local grid_str = format_GRID_CELLS( timestamp  )
+
+            ------------------------------------------------
+            -- DISPLAY -------------------------------------
+            ------------------------------------------------
+            if COLORED then
+                print(CLEAR..                    grid_str  )
+            else
+                print(CLEAR.." "..req_label..LF..grid_str  )
+            end
+
+        end
+    end
+    --}}}
+end
+--}}}
 -- listen_done_close_socket_and_log_file {{{
-function listen_done_close_socket_and_log_file()
+
+local sleep
+
+function listen_done_close_socket_and_log_file(ip,port)
     msg = LF
     .."------------------------------------------------------------------------"..LF
     .."--- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port          ..LF
@@ -517,6 +511,53 @@ function listen_done_close_socket_and_log_file()
     sleep(2)
 end
 --}}}
+
+--------------------------------------------------------------------------------
+-- UTIL ------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- log_time {{{
+function log_time()
+
+    local curTime =  os.time()
+
+    return ""
+    .. string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
+    .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
+
+end
+--}}}
+-- Listen_log {{{
+function Listen_log(line)
+
+    -- [log_file ../Logs/Listen.log] {{{
+    if not log_file_name then
+        log_file_name   = script_dir.."/../Logs/Listen.log"
+        log_file        = io.open(log_file_name, "w") -- override log_file
+    end
+    --}}}
+
+    if  log_file then
+        log_file:write(line.."\n")
+        log_file:flush()
+    end
+
+end
+--}}}
+-- string_split(s, sep) {{{
+function string_split(s, sep)
+   local   fields = {}
+   local      sep = sep or ":"
+   local  pattern = "([^"..sep.."]+)"
+   s:gsub(pattern , function(c) fields[#fields+1] = c end)
+   return  fields
+end
+--}}}
+-- sleep(sec) {{{
+function sleep(sec)
+
+    socket.select(nil, nil, sec)
+
+end --}}}
 
 --------------------------------------------------------------------------------
 -- START SERVER ----------------------------------------------------------------
