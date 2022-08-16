@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:02h:02) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:04h:50) --
 --------------------------------------------------------------------------------
 --int("@@@ LOADING Export_task.lua")
 print("@ LOADING Export_task.lua: arg[1]=[".. tostring(arg and arg[1]) .."]:")
@@ -289,8 +289,8 @@ function add_object_to_GRID_CELLS(o, parent_k)
         ------------------
         else
             v  = (type(v) == "number")
-            and   string.format("%.2f",          v )
-            or    string.format("%s"  , tostring(v))
+            and   string.format("%2.2f",          v )
+            or    string.format("%s"   , tostring(v))
 
             if     table_len(GRID_ROW_COL_TABLE)== 0 then build_GRID_ROW_COL_TABLE()       end
 
