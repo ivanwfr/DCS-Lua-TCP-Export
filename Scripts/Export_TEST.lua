@@ -1,10 +1,13 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220814:19h:07) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:02h:03) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
   TESTING        = arg and arg[1] and (arg[1] == "TESTING"    )
   TERMINATING    = arg and arg[1] and (arg[1] == "TERMINATING")
+  ACTIVITY_COUNT = 9 --FIXME
+
+--{{{
   if not TESTING and not TERMINATING then
       print("USAGE:")
       print(" "..arg[0].." TESTING")
@@ -12,27 +15,43 @@ print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
       print(" "..arg[0].." TERMINATING")
       return(1)
   end
-  ACTIVITY_COUNT = 2 --FIXME
+--}}}
 
---- TEST DATA 
+----------------------------
+--- UTIL -------------------
+----------------------------
+-- DeepCopy {{{
+local function DeepCopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[DeepCopy(orig_key)] = DeepCopy(orig_value)
+        end
+        setmetatable(copy, DeepCopy(getmetatable(orig)))
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+--}}}
+-- sleep(sec) {{{
+local function sleep(sec)
+
+    socket.select(nil, nil, sec)
+
+end --}}}
+
+----------------------------
+--- TEST DATA --------------
+----------------------------
 --{{{
     local ModelTime                = 0
     local AltitudeAboveGroundLevel = 0
     local PilotName                = "PilotName"
 
     local TEST_WORLDOBJECTS
---[[--{{{
-    = {
-      WorldObject1 = { Name       =    "A-10C"
-                     , Country    =    "1_Country"
-                     , Coalition  =    "1_Coalition"
-                  },
-      WorldObject2 = { Name       =    "A-10C"
-                     , Country    =    "2_Country"
-                     , Coalition  =    "2_Coalition"
-                  }
-    }
---}}}--]]
 ---[[--{{{
     = {
                Bank= 0.020179338753223,
@@ -73,17 +92,49 @@ print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
               label= "ACTIVITY[98] k=[16783616]"
     }
 --}}}--]]
+--[[--{{{
+    = {
+      WorldObject1 = { Name       =    "A-10C"
+                     , Country    =    "1_Country"
+                     , Coalition  =    "1_Coalition"
+                  },
+      WorldObject2 = { Name       =    "A-10C"
+                     , Country    =    "2_Country"
+                     , Coalition  =    "2_Coalition"
+                  }
+    }
+--}}}--]]
 --}}}
 
---- TEST FUNCTIONS
---{{{
+----------------------------
+--- TEST FUNCTIONS ---------
+----------------------------
+-- LoGetSelfData {{{
+function LoGetSelfData ()
 
-    function LoGetModelTime() ModelTime = ModelTime+1; return ModelTime         end
-    function LoGetSelfData ()                          return TEST_WORLDOBJECTS end
+    --------------------------------------------------------
+    -- SEND SOME RANDOM CHANGE OBJECTS (last == original) --
+    --------------------------------------------------------
+    local t = LoGetModelTime()
 
+    local o = DeepCopy( TEST_WORLDOBJECTS )
+
+--  if t<ACTIVITY_COUNT-1 then
+    if t%3 == 0 then
+        o.Bank        = o.Bank    +  t
+        o.Heading     = o.Heading +  t
+        o.Pitch       = o.Pitch   +  t
+        o.Name        = o.Name    .. t
+        o.Type.level1 =              t
+    end
+
+    return o
+end
 --}}}
 
---- TEST SEQUENCE
+----------------------------
+--- TEST SEQUENCE ----------
+----------------------------
 --{{{
 if TESTING then
 
@@ -101,7 +152,7 @@ if TESTING then
 
     for i=1, ACTIVITY_COUNT do
         LuaExportActivityNextEvent(i)
-        sleep(1)
+        sleep(0.5)
     end
 
     LuaExportStop()
@@ -111,15 +162,10 @@ if TESTING then
     print("-------------------------------------------------------------------")
 end
 --}}}
---- UTIL:
--- sleep(sec) {{{
-function sleep(sec)
 
-    socket.select(nil, nil, sec)
-
-end --}}}
-
---- TERMINATING LISTENER
+----------------------------
+--- TERMINATING LISTENER ---
+----------------------------
 --{{{
 if TERMINATING then
     print("# TERMINATING LISTENER")
