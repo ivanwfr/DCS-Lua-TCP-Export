@@ -1,10 +1,16 @@
 --------------------------------------------------------------------------------
--- Export_TEST_STUB.lua  in [Saved Games/DCS/Scripts] -- _TAG (220813:00h:44) --
+-- Export_TEST_STUB.lua  in [Saved Games/DCS/Scripts] -- _TAG (220816:02h:02) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST_STUB.lua")
 
 local MAX_COROUTINE_DURATION_SEC = 6
-local script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+
+-- LoGetModelTime
+--{{{
+local         ModelTime = 0
+function LoGetModelTime() ModelTime = ModelTime+1; return ModelTime end
+
+--}}}
 
 -- COROUTINES STUBS
 -- LoCreateCoroutineActivity(idx_, delay_, interval_) --{{{
@@ -71,6 +77,8 @@ function LoGetAltitudeAboveSeaLevel()
 
 --print("Export_TEST_STUB: LoGetAltitudeAboveSeaLevel() ...return["..v.."]")
 
+    v = math.max(v,3) -- keep last same value to show changes coloring
+
     return v
 end
 --}}}
@@ -102,7 +110,8 @@ function LoGetMechInfo() -- mechanization info
         hook            = {status,value},
         wing            = {status,value},
         canopy          = {status,value},
-        controlsurfaces = {elevator = {left,right},eleron = {left,right},rudder = {left,right}} -- relative vlues (-1,1) (min /max) (sorry:(
+        controlsurfaces = {elevator = {left,right},eleron = {left,right},rudder = {left,right}}
+        -- relative vlues (-1,1) (min /max) (sorry:(
     } 
 end
 --}}}
