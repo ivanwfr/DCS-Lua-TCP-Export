@@ -1,7 +1,12 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:04h:50) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:21h:04) --
 --------------------------------------------------------------------------------
---int("@@@ LOADING Export_task.lua")
+
+local log_this             = true
+
+local ACTIVITY_INTERVAL    = 1.0 -- SET TO 0 TO DISABLE --FIXME
+local ACTIVITY_START_DELAY = 0.0
+
 print("@ LOADING Export_task.lua: arg[1]=[".. tostring(arg and arg[1]) .."]:")
 
 -----------------------------------------------------------
@@ -16,43 +21,45 @@ local GRID_ROW_COL_TEXT    = ""
 .."    Pitch        LatLongAlt_Long  Position_z         \n"
 .."    Name         GroupName        Coalition          \n"
 .."    Country      UnitName         CoalitionID        \n"
-.."    label        -----------      -                  \n"
-.."    Type_level1      Type_level3  -                  \n"
-.."    Type_level2      Type_level4  -                  \n"
+.."    label                                            \n"
+.."    Type_level1      Type_level3                     \n"
+.."    Type_level2      Type_level4                     \n"
 .."    Flags_AI_ON  Flags_IRJamming  Flags_RadarActive  \n"
 .."    Flags_Born   Flags_Invisible  Flags_Static       \n"
 .."    Flags_Human  Flags_Jamming                       \n"
 
 --[[
-    :update|!start /b       luae Export_TEST.lua    TESTING
+:only|update|terminal luae % check_GRID_ROW_COL_TABLE
 --]]
---------------------------------
--- RECURRING DATA STREAM -------
---------------------------------
-local ACTIVITY_INTERVAL    = 1.0 -- SET TO 0 TO DISABLE --FIXME
-local ACTIVITY_START_DELAY = 0.0
-
---local log_this = true
 
 ---------------------
 -- LOCAL FUNCTIONS --
 ---------------------
 --{{{
 ----- PUBLIC
------ Export_task_Start
------ Export_task_BeforeNextFrame
------ Export_task_AfterNextFrame
------ Export_task_ActivityNextEvent
------ Export_task_Stop
 ----- CoroutineResume
+----- Export_task_ActivityNextEvent
+----- Export_task_AfterNextFrame
+----- Export_task_BeforeNextFrame
+----- Export_task_Start
+----- Export_task_Stop
+
 
 local Export_task_coroutine_handle
 local Export_task_coroutine_start
-local add_object_to_GRID_CELLS
 local build_GRID_ROW_COL_TABLE
+local add_object_to_GRID_CELLS
 local get_time_and_altitude
+
+local Export_LOG_FOLD_CLOSE
+local Export_LOG_FOLD_OPEN
+local Export_log
+local log_time
+local log_close
+
 local string_split
 local table_len
+
 --}}}
 
 --------------------------------------------------------------------------------
@@ -66,8 +73,6 @@ local JSON = dofile(script_dir.."/lib/JSON.lua")
       JSON.strictTypes = true -- to support metatable
 
 local LF              = "\n"
-local LOG_FOLD_OPEN  = "{{{"
-local LOG_FOLD_CLOSE = "}}}"
 --}}}
 
 --------------------------------------------------------------------------------
@@ -76,7 +81,7 @@ local LOG_FOLD_CLOSE = "}}}"
 function Export_task_Start() ----------------- CONNECT localhost:5001 -------{{{
     print("Export_task_Start")
 
-    local      msg = "Export_task_Start .. socket_connect .. "..log_time()..":"..LF..LOG_FOLD_OPEN
+    local      msg = "Export_task_Start .. socket_connect .. "..log_time()..":"
     Export_log(msg)
     print     (msg)
 
@@ -105,6 +110,7 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------- {{{
         print      (msg)
     end
     socket_send(msg)
+    Export_LOG_FOLD_OPEN()
 
     -- k,v , row,col
     local    o = LoGetSelfData( )
@@ -124,20 +130,20 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------- {{{
     end
     socket_send(msg)
 
+    Export_LOG_FOLD_CLOSE()
     return  t+1 -- so as to be called again
 end
 --}}}
 function Export_task_Stop() ------------------ CLOSE SOCKET -----------------{{{
 
-    local      msg = LOG_FOLD_CLOSE..LF.."Export_task_Stop ... socket_close .... "..log_time()..":"
+    Export_LOG_FOLD_CLOSE()
+
+    local      msg = "Export_task_Stop ... socket_close .... "..log_time()..":"
     Export_log(msg)
     print     (msg)
 
     socket_close()
 
-    if  log_file then
-        log_file:flush()
-    end
 end
 --}}}
 
@@ -154,15 +160,15 @@ repeat
     socket_send(msg)
     print      (msg)
 
-    json = get_time_and_altitude()
+    Export_LOG_FOLD_OPEN()
 
----[[--{{{
-    msg   =     json
+    local json  = get_time_and_altitude()
+    msg         =     json
     Export_log( msg)
     socket_send(msg)
     print      (msg)
---}}}--]]
-    local json = JSON:encode( o )
+
+    Export_LOG_FOLD_CLOSE()
 
     t = coroutine.yield()
 
@@ -232,6 +238,78 @@ end
 --}}}
 
 --------------------------------------------------------------------------------
+-- LOG -------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--{{{
+local LOG_FOLD_OPEN  = "{{{"
+local LOG_FOLD_CLOSE = "}}}"
+
+local log_file       = nil
+local log_file_name  = nil
+local log_is_opened  = false
+--}}}
+-- Export_log {{{
+function Export_log(line)
+    if not log_this then return end
+
+    -- [log_file ../Logs/Export.log] {{{
+    if not log_file_name then
+        log_file_name   = script_dir.."/../Logs/Export.log"
+        log_file        = io.open(log_file_name, "w") -- override log_file
+    end
+    --}}}
+
+    if  log_file then
+        log_file:write(line.."\n")
+        log_file:flush()
+    end
+
+end
+--}}}
+-- Export_LOG_FOLD_OPEN {{{
+function Export_LOG_FOLD_OPEN()
+    if not log_this then return end
+
+    if log_is_opened then
+        Export_log( LOG_FOLD_CLOSE )
+    end
+    Export_log( LOG_FOLD_OPEN )
+    log_is_opened = true
+end
+--}}}
+-- Export_LOG_FOLD_CLOSE {{{
+function Export_LOG_FOLD_CLOSE()
+    if not log_this then return end
+
+    if log_is_opened then
+        Export_log( LOG_FOLD_CLOSE )
+        log_is_opened = false
+    end
+end
+--}}}
+-- log_time {{{
+function log_time()
+
+    local curTime =  os.time()
+
+    return ""
+    .. string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
+    .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
+
+end
+--}}}
+-- log_close {{{
+function log_close()
+
+    if  log_file then
+        log_file:close()
+        log_file = nil
+    end
+
+end
+--}}}
+
+--------------------------------------------------------------------------------
 -- GRID_ROW_COL_TABLE ----------------------------------------------------------
 --------------------------------------------------------------------------------
 -- build_GRID_ROW_COL_TABLE {{{
@@ -249,13 +327,13 @@ print("...#rows["..#rows.."]")
             local                 label = cols[col]
 
             -- skip empty cell "-----------" placeholder
-            if label:gsub("-","") ~= "" then
+            if label:gsub("[^a-zA-Z0-9]","") ~= "" then
                 GRID_ROW_COL_TABLE[ label ] = { row=row , col=col }
             end
         end
     end
 
-print("GRID_ROW_COL_TABLE:"..LOG_FOLD_OPEN..LF..JSON:encode       (GRID_ROW_COL_TABLE):gsub("{\n",""):gsub("},","}\n,")..LF..LOG_FOLD_CLOSE)
+print("GRID_ROW_COL_TABLE:"..LOG_FOLD_OPEN..LF..JSON:encode       (GRID_ROW_COL_TABLE):gsub("{\n",""):gsub("},","}\n,"))
 
 print("@ ".. table_len(GRID_ROW_COL_TABLE).." CELLS:")
 end
@@ -329,7 +407,7 @@ end
     :update|     terminal   luae Export_TEST.lua    TESTING
     :update|     terminal   luae Export_TEST.lua    TERMINATING
 " Windows Terminal
-    :update|!start /b    wt luae Export_LISTEN.lua  COLORED
+    :update|!start /b    wt --colorScheme "ECC" luae Export_LISTEN.lua COLORED
     :update|!start /b       luae Export_TEST.lua    TESTING
     :update|!start /b       luae Export_TEST.lua    TERMINATING
 
