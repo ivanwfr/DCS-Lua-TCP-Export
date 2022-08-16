@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:04h:47) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:19h:26) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
@@ -120,7 +120,7 @@ function LoGetSelfData ()
 
     local o = DeepCopy( TEST_WORLDOBJECTS )
 
-    o.MTime           =              t
+    o.Type.level1     =              t
     if t%3 == 0 then
         o.Bank        = o.Bank    +  t
         o.Heading     = o.Heading +  t
@@ -191,7 +191,7 @@ end
     :update|     terminal   luae Export_TEST.lua    TESTING
     :update|     terminal   luae Export_TEST.lua    TERMINATING
 " Windows Terminal
-    :update|!start /b    wt luae Export_LISTEN.lua  COLORED
+    :update|!start /b    wt --colorScheme "ECC" luae Export_LISTEN.lua COLORED
     :update|!start /b       luae Export_TEST.lua    TESTING
     :update|!start /b       luae Export_TEST.lua    TERMINATING
 
