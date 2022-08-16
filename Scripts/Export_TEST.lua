@@ -1,11 +1,12 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:02h:03) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:04h:47) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
   TESTING        = arg and arg[1] and (arg[1] == "TESTING"    )
   TERMINATING    = arg and arg[1] and (arg[1] == "TERMINATING")
-  ACTIVITY_COUNT = 9 --FIXME
+  EVENT_COUNT    = 12 --FIXME
+  EVENT_INTERVAL = 0.5
 
 --{{{
   if not TESTING and not TERMINATING then
@@ -119,7 +120,7 @@ function LoGetSelfData ()
 
     local o = DeepCopy( TEST_WORLDOBJECTS )
 
---  if t<ACTIVITY_COUNT-1 then
+    o.MTime           =              t
     if t%3 == 0 then
         o.Bank        = o.Bank    +  t
         o.Heading     = o.Heading +  t
@@ -150,9 +151,9 @@ if TESTING then
     local  c = get_Export_socket()
     if not c then return 1 end
 
-    for i=1, ACTIVITY_COUNT do
+    for i=1, EVENT_COUNT do
         LuaExportActivityNextEvent(i)
-        sleep(0.5)
+        sleep(EVENT_INTERVAL)
     end
 
     LuaExportStop()
