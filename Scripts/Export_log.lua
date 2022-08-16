@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220816:02h:02) --
+-- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220816:19h:25) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_log.lua")
 
@@ -47,7 +47,7 @@ end
     :update|     terminal   luae Export_TEST.lua    TESTING
     :update|     terminal   luae Export_TEST.lua    TERMINATING
 " Windows Terminal
-    :update|!start /b    wt luae Export_LISTEN.lua  COLORED
+    :update|!start /b    wt --colorScheme "ECC" luae Export_LISTEN.lua COLORED
     :update|!start /b       luae Export_TEST.lua    TESTING
     :update|!start /b       luae Export_TEST.lua    TERMINATING
 
