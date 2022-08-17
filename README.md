@@ -4,14 +4,13 @@
 
 ### ✔ [ZIP archive on GitHub](../../archive/master.zip)
 
-## `README.md` _TAG (220817:19h:36)
+### `README.md` _TAG (220817:22h:23)
 
-# Export_LISTEN output in a Microsoft Windows Terminal:
-```
-> ![Export_LISTEN.lua](/Screenshots/Animation.gif)
-```
+#### Export_LISTEN output in a Microsoft Windows Terminal:
 
-# Microsoft Windows Terminal settings.json [schemes entry] for ECC termio colors:
+![Export_LISTEN.lua](/Screenshots/Animation.gif)
+
+#### Microsoft Windows Terminal settings.json [schemes entry] for ECC termio colors:
 ```
 
 (optional Electronic Color Code 10 colors setup)
@@ -41,7 +40,7 @@
   "yellow"              : "#FFFF00"
 },
 ```
-
+#### Files
 <!--
 }!!tree --dirsfirst          | sed -e 's/^/    /'
 }!!tree --dirsfirst Scripts/ | sed -e 's/^/    /'
@@ -51,6 +50,9 @@
     |-- Logs    -> %USERPROFILE%\Saved\ Games\DCS\Logs
     |-- Scripts -> %USERPROFILE%\Saved\ Games\DCS\Scripts
     `-- README.md
+    
+    Screenshots
+    `-- Animation.gif
 
     Scripts
     |-- lib
