@@ -1,32 +1,27 @@
 --------------------------------------------------------------------------------
--- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220816:19h:25) --
+-- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:09) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_log.lua")
 
-local Export_log_DISABLED = true -- @see Listen.log
+local log_ENABLED = false -- @see also Listen.log
 
+local script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+
+--------------------------------------------------------------------------------
+-- LOG -------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 --{{{
+local LOG_FOLD_OPEN  = "{{{"
+local LOG_FOLD_CLOSE = "}}}"
 
-local script_dir    = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
-local log_file      = nil
-local log_file_name = nil
-
---}}}
--- log_time {{{
-function log_time()
-
-    local curTime =  os.time()
-
-    return ""
-    .. string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
-    .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
-
-end
+local log_file       = nil
+local log_file_name  = nil
+local log_is_opened  = false
 --}}}
 -- Export_log {{{
 function Export_log(line)
 
-    if   Export_log_DISABLED then return end
+    if not log_ENABLED then return end
 
     if not log_file_name then
         log_file_name   = script_dir.."/../Logs/Export.log"
@@ -40,6 +35,50 @@ function Export_log(line)
 
 end
 --}}}
+-- Export_log_FOLD_OPEN {{{
+function Export_log_FOLD_OPEN()
+
+    if not log_ENABLED then return end
+
+    if log_is_opened then
+        Export_log( LOG_FOLD_CLOSE )
+    end
+    Export_log    ( LOG_FOLD_OPEN  )
+    log_is_opened = true
+end
+--}}}
+-- Export_log_FOLD_CLOSE {{{
+function Export_log_FOLD_CLOSE()
+
+    if not log_ENABLED then return end
+
+    if log_is_opened then
+        Export_log( LOG_FOLD_CLOSE )
+        log_is_opened = false
+    end
+end
+--}}}
+-- Export_log_time {{{
+function Export_log_time()
+
+    local curTime =  os.time()
+
+    return string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
+    ..     string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
+
+end
+--}}}
+-- Export_log_close {{{
+function Export_log_close()
+
+    if  log_file then
+        log_file:close()
+        log_file = nil
+    end
+
+end
+--}}}
+
 
 --[[ vim
     :only

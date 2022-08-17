@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:21h:04) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:10) --
 --------------------------------------------------------------------------------
 
 local log_this             = true
@@ -51,12 +51,6 @@ local build_GRID_ROW_COL_TABLE
 local add_object_to_GRID_CELLS
 local get_time_and_altitude
 
-local Export_LOG_FOLD_CLOSE
-local Export_LOG_FOLD_OPEN
-local Export_log
-local log_time
-local log_close
-
 local string_split
 local table_len
 
@@ -81,7 +75,7 @@ local LF              = "\n"
 function Export_task_Start() ----------------- CONNECT localhost:5001 -------{{{
     print("Export_task_Start")
 
-    local      msg = "Export_task_Start .. socket_connect .. "..log_time()..":"
+    local      msg = "Export_task_Start .. socket_connect .. "..Export_log_time()..":"
     Export_log(msg)
     print     (msg)
 
@@ -110,7 +104,7 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------- {{{
         print      (msg)
     end
     socket_send(msg)
-    Export_LOG_FOLD_OPEN()
+    Export_log_FOLD_OPEN()
 
     -- k,v , row,col
     local    o = LoGetSelfData( )
@@ -130,15 +124,15 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------- {{{
     end
     socket_send(msg)
 
-    Export_LOG_FOLD_CLOSE()
+    Export_log_FOLD_CLOSE()
     return  t+1 -- so as to be called again
 end
 --}}}
 function Export_task_Stop() ------------------ CLOSE SOCKET -----------------{{{
 
-    Export_LOG_FOLD_CLOSE()
+    Export_log_FOLD_CLOSE()
 
-    local      msg = "Export_task_Stop ... socket_close .... "..log_time()..":"
+    local      msg = "Export_task_Stop ... socket_close .... "..Export_log_time()..":"
     Export_log(msg)
     print     (msg)
 
@@ -160,7 +154,7 @@ repeat
     socket_send(msg)
     print      (msg)
 
-    Export_LOG_FOLD_OPEN()
+    Export_log_FOLD_OPEN()
 
     local json  = get_time_and_altitude()
     msg         =     json
@@ -168,7 +162,7 @@ repeat
     socket_send(msg)
     print      (msg)
 
-    Export_LOG_FOLD_CLOSE()
+    Export_log_FOLD_CLOSE()
 
     t = coroutine.yield()
 
@@ -238,78 +232,6 @@ end
 --}}}
 
 --------------------------------------------------------------------------------
--- LOG -------------------------------------------------------------------------
---------------------------------------------------------------------------------
---{{{
-local LOG_FOLD_OPEN  = "{{{"
-local LOG_FOLD_CLOSE = "}}}"
-
-local log_file       = nil
-local log_file_name  = nil
-local log_is_opened  = false
---}}}
--- Export_log {{{
-function Export_log(line)
-    if not log_this then return end
-
-    -- [log_file ../Logs/Export.log] {{{
-    if not log_file_name then
-        log_file_name   = script_dir.."/../Logs/Export.log"
-        log_file        = io.open(log_file_name, "w") -- override log_file
-    end
-    --}}}
-
-    if  log_file then
-        log_file:write(line.."\n")
-        log_file:flush()
-    end
-
-end
---}}}
--- Export_LOG_FOLD_OPEN {{{
-function Export_LOG_FOLD_OPEN()
-    if not log_this then return end
-
-    if log_is_opened then
-        Export_log( LOG_FOLD_CLOSE )
-    end
-    Export_log( LOG_FOLD_OPEN )
-    log_is_opened = true
-end
---}}}
--- Export_LOG_FOLD_CLOSE {{{
-function Export_LOG_FOLD_CLOSE()
-    if not log_this then return end
-
-    if log_is_opened then
-        Export_log( LOG_FOLD_CLOSE )
-        log_is_opened = false
-    end
-end
---}}}
--- log_time {{{
-function log_time()
-
-    local curTime =  os.time()
-
-    return ""
-    .. string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
-    .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
-
-end
---}}}
--- log_close {{{
-function log_close()
-
-    if  log_file then
-        log_file:close()
-        log_file = nil
-    end
-
-end
---}}}
-
---------------------------------------------------------------------------------
 -- GRID_ROW_COL_TABLE ----------------------------------------------------------
 --------------------------------------------------------------------------------
 -- build_GRID_ROW_COL_TABLE {{{
@@ -333,7 +255,7 @@ print("...#rows["..#rows.."]")
         end
     end
 
-print("GRID_ROW_COL_TABLE:"..LOG_FOLD_OPEN..LF..JSON:encode       (GRID_ROW_COL_TABLE):gsub("{\n",""):gsub("},","}\n,"))
+print("GRID_ROW_COL_TABLE:"..LF..JSON:encode       (GRID_ROW_COL_TABLE):gsub("{\n",""):gsub("},","}\n,"))
 
 print("@ ".. table_len(GRID_ROW_COL_TABLE).." CELLS:")
 end
