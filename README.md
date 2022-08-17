@@ -6,8 +6,11 @@
 
 ## `README.md` _TAG (220817:03h:15)
 
-# still much cleanup and simplification to do
+# Export_LISTEN output in a Microsoft Windows Terminal:
+```
+    ![Screenshot](/Animation.gif)
 
+```
 <!--
 }!!tree --dirsfirst          | sed -e 's/^/    /'
 }!!tree --dirsfirst Scripts/ | sed -e 's/^/    /'
