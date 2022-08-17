@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220816:21h:04) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:09) --
 --------------------------------------------------------------------------------
 
 local log_this       = true
@@ -17,16 +17,17 @@ local LF             = "\n"
 local   ESC   = tostring(string.char(27))
 local CLEAR   = COLORED and (ESC.."c"          .. ESC.."c"          ) or LF.."CLEAR" ------ TERMINAL
 ---------------------------------- BACKGROUND ......... FOREGROUND ---------------------------------
-local     N   = COLORED and (ESC.."[48;5;233m" .. ESC.."[38;5;254m" ) or "" -- 0 --   LIGHT on DARK
-local     B   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;94m"  ) or "" -- 1 --   BROWN on BLACK
-local     R   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;196m" ) or "" -- 2 --     RED on BLACK
-local     O   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;214m" ) or "" -- 3 --  ORANGE on BLACK
-local     Y   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;226m" ) or "" -- 4 --  YELLOW on BLACK
-local     G   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;34m"  ) or "" -- 5 --   GREEN on BLACK
-local     L   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;45m"  ) or "" -- 6 --    BLUE on BLACK
-local     M   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;129m" ) or "" -- 7 -- MAGENTA on BLACK
-local     E   = COLORED and (ESC.."[48;5;235m" .. ESC.."[38;5;244m" ) or "" -- 8 --    GREY on BLACK
-local     W   = COLORED and (ESC.."[48;5;232m" .. ESC.."[38;5;255m" ) or "" -- 9 --   WHITE on BLACK
+--cal     N   = COLORED and (ESC.."[38;5;254m"..ESC.."[48;5;233m") or "" -- 0 --   LIGHT on DARK
+local     N   = COLORED and (ESC.."[38;5;254m"..ESC.."[48;5;232m") or "" -- 0 --   LIGHT on DARK
+local     B   = COLORED and (ESC.."[38;5;94m" ..ESC.."[48;5;234m") or "" -- 1 --   BROWN on BLACK
+local     R   = COLORED and (ESC.."[38;5;196m"..ESC.."[48;5;234m") or "" -- 2 --     RED on BLACK
+local     O   = COLORED and (ESC.."[38;5;214m"..ESC.."[48;5;234m") or "" -- 3 --  ORANGE on BLACK
+local     Y   = COLORED and (ESC.."[38;5;226m"..ESC.."[48;5;234m") or "" -- 4 --  YELLOW on BLACK
+local     G   = COLORED and (ESC.."[38;5;28m" ..ESC.."[48;5;234m") or "" -- 5 --   GREEN on BLACK
+local     L   = COLORED and (ESC.."[38;5;45m" ..ESC.."[48;5;234m") or "" -- 6 --    BLUE on BLACK
+local     M   = COLORED and (ESC.."[38;5;129m"..ESC.."[48;5;234m") or "" -- 7 -- MAGENTA on BLACK
+local     E   = COLORED and (ESC.."[38;5;244m"..ESC.."[48;5;234m") or "" -- 8 --    GREY on BLACK
+local     W   = COLORED and (ESC.."[38;5;255m"..ESC.."[48;5;232m") or "" -- 9 --   WHITE on BLACK
 
 print(CLEAR..N.."-N-"..B.."-B-"..R.."-R-"..O.."-O-"..Y.."-Y-"..G.."-G-"..L.."-L-"..M.."-M-"..R.."-R-"..W.."-W-"..N)
 --}}}
@@ -54,11 +55,11 @@ local sleep
 local string_split
 local table_len
 
-local Listen_LOG_FOLD_CLOSE
-local Listen_LOG_FOLD_OPEN
+local Listen_log_FOLD_CLOSE
+local Listen_log_FOLD_OPEN
 local Listen_log
-local log_time
-local log_close
+local Listen_log_time
+local Listen_log_close
 
 --}}}
 
@@ -245,7 +246,7 @@ function format_GRID_CELLS(timestamp)
     local cell
     local eol
 
-    local str = ""
+   local str  = LF
 
     local row = 1
     local col = 1
@@ -284,8 +285,9 @@ function format_GRID_CELLS(timestamp)
         end
         --}}}
         -- CONTENT {{{
-        sep      = (col > 1) and string.len(cell)>0 and GRID_COL_SEP or ""
-        eol      = (col == GRID_COL_MAX) and LF                    or ""
+        --p      = (col > 1) and string.len(cell)>0 and GRID_COL_SEP or ""
+        sep      =                                      GRID_COL_SEP
+        eol      = (col == GRID_COL_MAX)            and LF           or ""
         str      = str .. sep .. cell .. eol
         --}}}
         -- NEXT GRID CELL {{{
@@ -342,7 +344,7 @@ function format_GRID_CELLS(timestamp)
     ----------------------------------------
     -- RETURN DELTA HIGHLIGHTED VALUES -----
     ----------------------------------------
-    str = string.gsub(str, "[ \n]$", "")
+--  str = string.gsub(str, "[ \n]$", "")
     return str
 end
 --}}}
@@ -370,7 +372,7 @@ function listen()
         --{{{
         local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
 
-        msg = "Export_LISTEN.lua .. socket_accept .. "..log_time()..":"
+        msg = "Export_LISTEN.lua .. socket_accept .. "..Listen_log_time()..":"
         Listen_log(msg)
         print(Y..  msg ..N)
         --}}}
@@ -392,7 +394,7 @@ function listen()
             --{{{
             if  err then
 
-                Listen_LOG_FOLD_CLOSE()
+                Listen_log_FOLD_CLOSE()
 
                 msg = LF.."--- Export_LISTEN.lua: "..tostring(err)
                 Listen_log(msg)
@@ -409,9 +411,9 @@ function listen()
 
                 if req == QUIT then
 
-                    Listen_LOG_FOLD_CLOSE()
+                    Listen_log_FOLD_CLOSE()
 
-                    msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER .... "..log_time()..":"
+                    msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER .... "..Listen_log_time()..":"
                     Listen_log(msg)
                     print( R.. msg ..N)
 
@@ -467,7 +469,7 @@ function handle_request( req )
         --------------------------
         req =      req_table[i]
         if string.find(req, "{") then
-            Listen_LOG_FOLD_OPEN()
+            Listen_log_FOLD_OPEN()
 
             ------------------------------------------------
             -- COLLECT NEW..OLD [KEYS] AND..OR [VALUES] ----
@@ -489,7 +491,7 @@ function handle_request( req )
                 print(CLEAR.." "..req_type..LF..grid_str)
             end
 
-            Listen_LOG_FOLD_CLOSE()
+            Listen_log_FOLD_CLOSE()
         end
     end
     --}}}
@@ -512,7 +514,7 @@ function listen_done_close_socket_and_log_file(ip,port)
         client = nil
     end
 
-    log_close()
+    Listen_log_close()
 
     sleep(2)
 end
@@ -550,14 +552,13 @@ local log_is_opened  = false
 --}}}
 -- Listen_log {{{
 function Listen_log(line)
-    if not log_this then return end
 
-    -- [log_file ../Logs/Listen.log] {{{
+    if not log_this    then return end
+
     if not log_file_name then
         log_file_name   = script_dir.."/../Logs/Listen.log"
         log_file        = io.open(log_file_name, "w") -- override log_file
     end
-    --}}}
 
     if  log_file then
         log_file:write(line.."\n")
@@ -566,20 +567,22 @@ function Listen_log(line)
 
 end
 --}}}
--- Listen_LOG_FOLD_OPEN {{{
-function Listen_LOG_FOLD_OPEN()
-    if not log_this then return end
+-- Listen_log_FOLD_OPEN {{{
+function Listen_log_FOLD_OPEN()
+
+    if not log_this    then return end
 
     if log_is_opened then
         Listen_log( LOG_FOLD_CLOSE )
     end
-    Listen_log( LOG_FOLD_OPEN )
+    Listen_log    ( LOG_FOLD_OPEN  )
     log_is_opened = true
 end
 --}}}
--- Listen_LOG_FOLD_CLOSE {{{
-function Listen_LOG_FOLD_CLOSE()
-    if not log_this then return end
+-- Listen_log_FOLD_CLOSE {{{
+function Listen_log_FOLD_CLOSE()
+
+    if not log_this    then return end
 
     if log_is_opened then
         Listen_log( LOG_FOLD_CLOSE )
@@ -587,19 +590,18 @@ function Listen_LOG_FOLD_CLOSE()
     end
 end
 --}}}
--- log_time {{{
-function log_time()
+-- Listen_log_time {{{
+function Listen_log_time()
 
     local curTime =  os.time()
 
-    return ""
-    .. string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
-    .. string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
+    return string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
+    ..     string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
 
 end
 --}}}
--- log_close {{{
-function log_close()
+-- Listen_log_close {{{
+function Listen_log_close()
 
     if  log_file then
         log_file:close()
