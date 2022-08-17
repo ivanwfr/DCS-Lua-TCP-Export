@@ -4,11 +4,10 @@
 
 ### ✔ [ZIP archive on GitHub](../../archive/master.zip)
 
-### `README.md` _TAG (220818:00h:39)
+### `README.md` _TAG (220818:00h:51)
 
 #### Export_LISTEN output in a Microsoft Windows Terminal:
 ![Export_LISTEN.lua](/Screenshots/Animation.gif)
-```
 
 #### Microsoft Windows Terminal settings.json [schemes entry] for ECC termio colors:
 ```
