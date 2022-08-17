@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220816:19h:25) --
+-- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:10) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_socket.lua")
 

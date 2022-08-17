@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST_STUB.lua  in [Saved Games/DCS/Scripts] -- _TAG (220816:19h:26) --
+-- Export_TEST_STUB.lua  in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:14) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST_STUB.lua")
 

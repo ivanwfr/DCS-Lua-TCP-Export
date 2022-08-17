@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220816:19h:26) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:10) --
 --------------------------------------------------------------------------------
 print("@@@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
@@ -90,7 +90,7 @@ end --}}}
                            level4= 58
                        },
            UnitName= "New callsign",
-              label= "ACTIVITY[98] k=[16783616]"
+              label= "ACTIVITY[98]"
     }
 --}}}--]]
 --[[--{{{
@@ -176,7 +176,7 @@ if TERMINATING then
 
     socket_connect()
 
-    local      msg = "\n x Export_TEST .. TERMINATING    .. ["..log_time().."]\n"
+    local      msg = "\n x Export_TEST .. TERMINATING    .. ["..Export_log_time().."]\n"
     Export_log(msg)
 
     socket_send("quit")
