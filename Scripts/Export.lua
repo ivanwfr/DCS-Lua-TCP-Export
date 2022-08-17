@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export.lua ---------- in [Saved Games/DCS/Scripts] -- _TAG (220817:17h:57) --
+-- Export.lua ---------- in [Saved Games/DCS/Scripts] -- _TAG (220817:21h:26) --
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ function LuaExportStop             ( )                                 Export_ta
     :update|     terminal    luae Export_TEST.lua    TESTING
     :update|     terminal    luae Export_TEST.lua    TERMINATING
 " Windows Terminal
-    :update|!start /b wt_ECC luae Export_LISTEN.lua  COLORED
+    :update|!start /b wt     luae Export_LISTEN.lua  COLORED
     :update|!start /b        luae Export_TEST.lua    TESTING
     :update|!start /b        luae Export_TEST.lua    TERMINATING
 
@@ -37,7 +37,7 @@ function LuaExportStop             ( )                                 Export_ta
 :e Export_TEST_STUB.lua
 
 :e $LOCAL/DATA/GAMES/DCS_World/Scripts/Export.lua
-:e $LOCAL/GAMES/IVANWFR/INPUT/THRUSTMASTER/HOTAS/TARGET/SCRIPTS/ivanwfr/util/util_GameCB.tmc
+:e $TARGETSCRIPTS/util/util_GameCB.tmc
 
 :e $USERPROFILE/Saved\ Games/DCS/Logs/Export.log
 :e $USERPROFILE/Saved\ Games/DCS/Logs/Listen.log
