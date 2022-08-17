@@ -1,22 +1,22 @@
 --------------------------------------------------------------------------------
--- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:10) --
+-- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220817:17h:59) --
 --------------------------------------------------------------------------------
-print("@@@ LOADING Export_socket.lua")
+print("@ LOADING Export_socket.lua")
 
 local             PORT =  5002
 local             HOST = "localhost"
---local SEND_TO_TARGET = true -- UNCOMMENT TO FORMAT MESSAGES FOR TARGET SCRIPT
-
 --local       log_this = true
+--local SEND_TO_TARGET = true -- UNCOMMENT TO FORMAT MESSAGES FOR TARGET SCRIPT
 
 -- Export_log.lua
 --{{{
+local  script_dir  = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
+dofile(script_dir.."/Export_log.lua"   )
+
+if log_this then Export_log_set_log_file_name("Export.log") end
+
 local LF = "\n"
 
-if not Export_log then
-    local  script_dir  = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
-    dofile(script_dir.."/Export_log.lua"   )
-end
 --}}}
 
 --------------------------------------------------------------------------------
@@ -137,13 +137,13 @@ end
 
 --[[ vim
     :only
-    :update|vert terminal   luae Export_LISTEN.lua
-    :update|     terminal   luae Export_TEST.lua    TESTING
-    :update|     terminal   luae Export_TEST.lua    TERMINATING
+    :update|vert terminal    luae Export_LISTEN.lua
+    :update|     terminal    luae Export_TEST.lua    TESTING
+    :update|     terminal    luae Export_TEST.lua    TERMINATING
 " Windows Terminal
-    :update|!start /b    wt --colorScheme "ECC" luae Export_LISTEN.lua COLORED
-    :update|!start /b       luae Export_TEST.lua    TESTING
-    :update|!start /b       luae Export_TEST.lua    TERMINATING
+    :update|!start /b wt_ECC luae Export_LISTEN.lua  COLORED
+    :update|!start /b        luae Export_TEST.lua    TESTING
+    :update|!start /b        luae Export_TEST.lua    TERMINATING
 
 :e Export.lua
 :e Export_task.lua

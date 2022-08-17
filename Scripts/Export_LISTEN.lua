@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:09) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220817:18h:08) --
 --------------------------------------------------------------------------------
 
 local log_this       = true
@@ -11,22 +11,25 @@ local HOST           = "*"
 -- TERMIOS {{{
 local LF             = "\n"
 
--- ECC....... https://en.wikipedia.org/wiki/Electronic_color_code
--- TERMIOS... https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+--[[
+:!start /b explorer "https://en.wikipedia.org/wiki/Electronic_color_code"
+:!start /b explorer "https://en.wikipedia.org/wiki/ANSI_escape_code"
+:e $LOCALAPPDATA/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json 
+--]]
 
 local   ESC   = tostring(string.char(27))
 local CLEAR   = COLORED and (ESC.."c"          .. ESC.."c"          ) or LF.."CLEAR" ------ TERMINAL
 ---------------------------------- BACKGROUND ......... FOREGROUND ---------------------------------
---cal     N   = COLORED and (ESC.."[38;5;254m"..ESC.."[48;5;233m") or "" -- 0 --   LIGHT on DARK
-local     N   = COLORED and (ESC.."[38;5;254m"..ESC.."[48;5;232m") or "" -- 0 --   LIGHT on DARK
-local     B   = COLORED and (ESC.."[38;5;94m" ..ESC.."[48;5;234m") or "" -- 1 --   BROWN on BLACK
-local     R   = COLORED and (ESC.."[38;5;196m"..ESC.."[48;5;234m") or "" -- 2 --     RED on BLACK
-local     O   = COLORED and (ESC.."[38;5;214m"..ESC.."[48;5;234m") or "" -- 3 --  ORANGE on BLACK
-local     Y   = COLORED and (ESC.."[38;5;226m"..ESC.."[48;5;234m") or "" -- 4 --  YELLOW on BLACK
-local     G   = COLORED and (ESC.."[38;5;28m" ..ESC.."[48;5;234m") or "" -- 5 --   GREEN on BLACK
-local     L   = COLORED and (ESC.."[38;5;45m" ..ESC.."[48;5;234m") or "" -- 6 --    BLUE on BLACK
-local     M   = COLORED and (ESC.."[38;5;129m"..ESC.."[48;5;234m") or "" -- 7 -- MAGENTA on BLACK
-local     E   = COLORED and (ESC.."[38;5;244m"..ESC.."[48;5;234m") or "" -- 8 --    GREY on BLACK
+--cal     N   = COLORED and (ESC.."[38;5;255m"..ESC.."[48;5;232m") or "" -- 0 --   WHITE on BLACK
+local     N   = COLORED and (ESC.."[38;5;254m"..ESC.."[48;5;234m") or "" -- 0 --   LIGHT on DARK
+local     B   = COLORED and (ESC.."[38;5;94m" ..ESC.."[48;5;232m") or "" -- 1 --   BROWN on BLACK
+local     R   = COLORED and (ESC.."[38;5;196m"..ESC.."[48;5;232m") or "" -- 2 --     RED on BLACK
+local     O   = COLORED and (ESC.."[38;5;214m"..ESC.."[48;5;232m") or "" -- 3 --  ORANGE on BLACK
+local     Y   = COLORED and (ESC.."[38;5;226m"..ESC.."[48;5;232m") or "" -- 4 --  YELLOW on BLACK
+local     G   = COLORED and (ESC.."[38;5;28m" ..ESC.."[48;5;232m") or "" -- 5 --   GREEN on BLACK
+local     L   = COLORED and (ESC.."[38;5;45m" ..ESC.."[48;5;232m") or "" -- 6 --    BLUE on BLACK
+local     M   = COLORED and (ESC.."[38;5;129m"..ESC.."[48;5;232m") or "" -- 7 -- MAGENTA on BLACK
+local     E   = COLORED and (ESC.."[38;5;244m"..ESC.."[48;5;232m") or "" -- 8 --    GREY on BLACK
 local     W   = COLORED and (ESC.."[38;5;255m"..ESC.."[48;5;232m") or "" -- 9 --   WHITE on BLACK
 
 print(CLEAR..N.."-N-"..B.."-B-"..R.."-R-"..O.."-O-"..Y.."-Y-"..G.."-G-"..L.."-L-"..M.."-M-"..R.."-R-"..W.."-W-"..N)
@@ -55,12 +58,6 @@ local sleep
 local string_split
 local table_len
 
-local Listen_log_FOLD_CLOSE
-local Listen_log_FOLD_OPEN
-local Listen_log
-local Listen_log_time
-local Listen_log_close
-
 --}}}
 
 --------------------------------------------------------------------------------
@@ -72,11 +69,13 @@ local script_dir        = string.gsub(os.getenv("USERPROFILE")
 
 --}}}
 --{{{
-if not socket then
-    local  script_dir = string.gsub(os.getenv("USERPROFILE") .."/Saved Games/DCS/Scripts", "\\", "/")
-    dofile(script_dir.."/lib/socket.lua")
-    local  socket = require("socket"    )
-end
+
+local               script_dir = string.gsub(os.getenv("USERPROFILE") .."/Saved Games/DCS/Scripts", "\\", "/")
+             dofile(script_dir.."/Export_log.lua"   )
+             dofile(script_dir.."/lib/socket.lua")
+local  socket = require("socket"    )
+
+if log_this then Export_log_set_log_file_name("Listen.log") end
 --}}}
 -- JSON {{{
 local JSON =  dofile(script_dir.."/lib/JSON.lua")
@@ -158,10 +157,12 @@ function update_GRID_CELLS(o,parent_k)
             -------------------------------------------
             -- LOG CHANGES ----------------------------
             -------------------------------------------
-            if new_item then
-                Listen_log("NEW ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
-            elseif not same_value then
-                Listen_log("MOD ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
+            if log_this then
+                if new_item then
+                    Export_log("NEW ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
+                elseif not same_value then
+                    Export_log("MOD ["..k.."]:"..JSON:encode(GRID_CELLS[k]))
+                end
             end
 
             --------------------------------------------
@@ -358,12 +359,16 @@ function listen()
     local   server =  assert( socket.bind(HOST , PORT))
     local ip, port = server:getsockname()
 
-    local msg = E..LF
-    .."------------------------------------------------------------------------"..LF
-    .."--- Export_LISTEN.lua: .. LISTENING IP="..ip.." . port=".. port          ..LF
-    .."------------------------------------------------------------------------"
-    Listen_log(msg)
-    print     (msg)
+    local msg = LF
+    ..". --------------------------------------------------------------"..LF
+    ..". -- Export_LISTEN.lua: .. LISTENING IP="..ip.." . port=".. port ..LF
+    ..". --------------------------------------------------------------"..LF
+    print(LF..E..msg..N)
+
+    if log_this then
+        Export_log_FOLD_CLOSE()
+        Export_log(msg)
+    end
 
     while req       ~= QUIT do
         ---------------------------
@@ -372,9 +377,14 @@ function listen()
         --{{{
         local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
 
-        msg = "Export_LISTEN.lua .. socket_accept .. "..Listen_log_time()..":"
-        Listen_log(msg)
-        print(Y..  msg ..N)
+        if log_this then
+            local      msg = ""
+            ..". Export_LISTEN.lua .. socket_accept .. "..Export_log_time()..":"
+
+            print(Y..  msg ..N)
+
+            Export_log(msg)
+        end
         --}}}
 
         ---------------------------
@@ -393,13 +403,14 @@ function listen()
             ------------------------------------------------------------------------
             --{{{
             if  err then
+                local      msg = "xxx Export_LISTEN.lua: "..tostring(err)..LF
 
-                Listen_log_FOLD_CLOSE()
-
-                msg = LF.."--- Export_LISTEN.lua: "..tostring(err)
-                Listen_log(msg)
                 print(Y..  msg ..N)
 
+                if log_this then
+                    Export_log_FOLD_CLOSE()
+                    Export_log(msg)
+                end
             --}}}
 
             ------------------------------------------------------------------------
@@ -411,13 +422,20 @@ function listen()
 
                 if req == QUIT then
 
-                    Listen_log_FOLD_CLOSE()
+                    local      msg = LF
+                    .."xxx Export_LISTEN.lua ["..req .."]"
+                    .."TERMINATING LISTENER .... "
+                    ..Export_log_time()..":"
 
-                    msg = LF.."--- Export_LISTEN.lua ["..req .."] TERMINATING LISTENER .... "..Listen_log_time()..":"
-                    Listen_log(msg)
                     print( R.. msg ..N)
 
+                    if log_this then
+                        Export_log_FOLD_CLOSE()
+                        Export_log(msg)
+                    end
+
                 else
+
                     handle_request( req )
 
                 end
@@ -469,11 +487,13 @@ function handle_request( req )
         --------------------------
         req =      req_table[i]
         if string.find(req, "{") then
-            Listen_log_FOLD_OPEN()
+
+            if log_this then Export_log_FOLD_OPEN() end
 
             ------------------------------------------------
             -- COLLECT NEW..OLD [KEYS] AND..OR [VALUES] ----
             ------------------------------------------------
+
             update_GRID_CELLS( JSON:decode(req) )
 
             ------------------------------------------------
@@ -491,7 +511,7 @@ function handle_request( req )
                 print(CLEAR.." "..req_type..LF..grid_str)
             end
 
-            Listen_log_FOLD_CLOSE()
+            if log_this then Export_log_FOLD_CLOSE() end
         end
     end
     --}}}
@@ -502,19 +522,21 @@ end
 local sleep
 
 function listen_done_close_socket_and_log_file(ip,port)
-    msg = LF
-    .."------------------------------------------------------------------------"..LF
-    .."--- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port          ..LF
-    .."------------------------------------------------------------------------"..LF
-    Listen_log(msg)
-    print( E.. msg ..N)
+    if log_this then
+        local msg = LF
+        ..". --------------------------------------------------------------"..LF
+        ..". -- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port ..LF
+        ..". --------------------------------------------------------------"..LF
+        Export_log(  msg   )
+        print(    E..msg..N)
+
+        Export_log_close()
+    end
 
     if  client then
         client:close()
         client = nil
     end
-
-    Listen_log_close()
 
     sleep(2)
 end
@@ -540,91 +562,19 @@ function sleep(sec)
 end --}}}
 
 --------------------------------------------------------------------------------
--- LOG -------------------------------------------------------------------------
---------------------------------------------------------------------------------
---{{{
-local LOG_FOLD_OPEN  = "{{{"
-local LOG_FOLD_CLOSE = "}}}"
-
-local log_file       = nil
-local log_file_name  = nil
-local log_is_opened  = false
---}}}
--- Listen_log {{{
-function Listen_log(line)
-
-    if not log_this    then return end
-
-    if not log_file_name then
-        log_file_name   = script_dir.."/../Logs/Listen.log"
-        log_file        = io.open(log_file_name, "w") -- override log_file
-    end
-
-    if  log_file then
-        log_file:write(line.."\n")
-        log_file:flush()
-    end
-
-end
---}}}
--- Listen_log_FOLD_OPEN {{{
-function Listen_log_FOLD_OPEN()
-
-    if not log_this    then return end
-
-    if log_is_opened then
-        Listen_log( LOG_FOLD_CLOSE )
-    end
-    Listen_log    ( LOG_FOLD_OPEN  )
-    log_is_opened = true
-end
---}}}
--- Listen_log_FOLD_CLOSE {{{
-function Listen_log_FOLD_CLOSE()
-
-    if not log_this    then return end
-
-    if log_is_opened then
-        Listen_log( LOG_FOLD_CLOSE )
-        log_is_opened = false
-    end
-end
---}}}
--- Listen_log_time {{{
-function Listen_log_time()
-
-    local curTime =  os.time()
-
-    return string.format(os.date(   "%Y-%m-%d-%H:%M:%S"     , curTime))
-    ..     string.format(os.date(" (!%Y-%m-%d-%H:%M:%S UTC)", curTime))
-
-end
---}}}
--- Listen_log_close {{{
-function Listen_log_close()
-
-    if  log_file then
-        log_file:close()
-        log_file = nil
-    end
-
-end
---}}}
-
---------------------------------------------------------------------------------
 -- START SERVER ----------------------------------------------------------------
 --------------------------------------------------------------------------------
 listen()
 
 --[[ vim
     :only
-    :update|vert terminal   luae Export_LISTEN.lua
-    :update|     terminal   luae Export_TEST.lua    TESTING
-    :update|     terminal   luae Export_TEST.lua    TERMINATING
+    :update|vert terminal    luae Export_LISTEN.lua
+    :update|     terminal    luae Export_TEST.lua    TESTING
+    :update|     terminal    luae Export_TEST.lua    TERMINATING
 " Windows Terminal
-    :update|!start /b    wt --colorScheme "ECC" luae Export_LISTEN.lua COLORED
-    :update|!start /b       luae Export_TEST.lua    TESTING
-    :update|!start /b       luae Export_TEST.lua    TERMINATING
+    :update|!start /b wt_ECC luae Export_LISTEN.lua  COLORED
+    :update|!start /b        luae Export_TEST.lua    TESTING
+    :update|!start /b        luae Export_TEST.lua    TERMINATING
 
 :e Export.lua
 :e Export_task.lua

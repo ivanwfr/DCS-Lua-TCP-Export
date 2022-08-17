@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
--- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220817:03h:09) --
+-- Export_log.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220817:17h:58) --
 --------------------------------------------------------------------------------
-print("@@@ LOADING Export_log.lua")
+print("@ LOADING Export_log.lua")
 
 local log_ENABLED = false -- @see also Listen.log
 
@@ -17,6 +17,26 @@ local LOG_FOLD_CLOSE = "}}}"
 local log_file       = nil
 local log_file_name  = nil
 local log_is_opened  = false
+--}}}
+-- Export_log_set_log_file_name {{{
+function Export_log_set_log_file_name(_log_file_name)
+
+    if  log_file_name == _log_file_name then
+        return
+    end
+
+    if  log_file then
+        Export_log_close()
+    end
+
+    if _log_file_name then
+        log_file_name = script_dir.."/../Logs/".._log_file_name
+        log_file      = io.open(log_file_name, "w") -- override log_file
+
+        log_ENABLED   = true -- caller's [log_this] has precedence
+    end
+
+end
 --}}}
 -- Export_log {{{
 function Export_log(line)
@@ -73,7 +93,11 @@ function Export_log_close()
 
     if  log_file then
         log_file:close()
-        log_file = nil
+        log_file      = nil
+    end
+
+    if log_file_name then
+        log_file_name = nil
     end
 
 end
@@ -82,13 +106,13 @@ end
 
 --[[ vim
     :only
-    :update|vert terminal   luae Export_LISTEN.lua
-    :update|     terminal   luae Export_TEST.lua    TESTING
-    :update|     terminal   luae Export_TEST.lua    TERMINATING
+    :update|vert terminal    luae Export_LISTEN.lua
+    :update|     terminal    luae Export_TEST.lua    TESTING
+    :update|     terminal    luae Export_TEST.lua    TERMINATING
 " Windows Terminal
-    :update|!start /b    wt --colorScheme "ECC" luae Export_LISTEN.lua COLORED
-    :update|!start /b       luae Export_TEST.lua    TESTING
-    :update|!start /b       luae Export_TEST.lua    TERMINATING
+    :update|!start /b wt_ECC luae Export_LISTEN.lua  COLORED
+    :update|!start /b        luae Export_TEST.lua    TESTING
+    :update|!start /b        luae Export_TEST.lua    TERMINATING
 
 :e Export.lua
 :e Export_task.lua
