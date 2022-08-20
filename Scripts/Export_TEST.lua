@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220817:21h:27) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220819:02h:57) --
 --------------------------------------------------------------------------------
 print("@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 

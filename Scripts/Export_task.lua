@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220817:21h:27) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220819:02h:57) --
 --------------------------------------------------------------------------------
 
 local ACTIVITY_INTERVAL    = 1.0 -- SET TO 0 TO DISABLE --FIXME
