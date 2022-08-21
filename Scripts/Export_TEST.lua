@@ -1,19 +1,19 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:18h:17) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:22h:33) --
 --------------------------------------------------------------------------------
 print("@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
-  TESTING        = arg and arg[1] and (arg[1] == "TESTING"    )
-  TERMINATING    = arg and arg[1] and (arg[1] == "TERMINATING")
+  STARTTEST        = arg and arg[1] and (arg[1] == "STARTTEST"    )
+  TERMINATE      = arg and arg[1] and (arg[1] == "TERMINATE")
   EVENT_COUNT    = 12 --FIXME
   EVENT_INTERVAL = 0.5
 
 --{{{
-  if not TESTING and not TERMINATING then
+  if not STARTTEST and not TERMINATE then
       print("USAGE:")
-      print(" "..arg[0].." TESTING")
+      print(" "..arg[0].." STARTTEST")
       print("or")
-      print(" "..arg[0].." TERMINATING")
+      print(" "..arg[0].." TERMINATE")
       return(1)
   end
 --}}}
@@ -137,7 +137,7 @@ end
 --- TEST SEQUENCE ----------
 ----------------------------
 --{{{
-if TESTING then
+if STARTTEST then
 
     print("-------------------------------------------------------------------")
     print("--- Export_TEST.lua ["..(arg[1] and arg[1] or " ").."]"             )
@@ -170,35 +170,37 @@ end
 --}}}
 
 ----------------------------
---- TERMINATING LISTENER ---
+--- TERMINATE LISTENER -----
 ----------------------------
 --{{{
-if TERMINATING then
-    print("# TERMINATING LISTENER")
+if TERMINATE then
+    print("# TERMINATE LISTENER")
 
     dofile("Export_log.lua")
     dofile("Export_socket.lua")
 
     socket_connect()
 
-    local      msg = "\n x Export_TEST .. TERMINATING    .. ["..Export_log_time().."]\n"
+    local      msg = "\n x Export_TEST .. TERMINATE    .. ["..Export_log_time().."]\n"
     Export_log(msg)
 
     socket_send("quit")
 
     print("# ...done")
+
+    sleep(2)
 end
 --}}}
 
 --[[ vim
     :only
     :update|vert terminal    luae Export_LISTEN.lua
-    :update|     terminal    luae Export_TEST.lua    TESTING
-    :update|     terminal    luae Export_TEST.lua    TERMINATING
+    :update|     terminal    luae Export_TEST.lua    STARTTEST
+    :update|     terminal    luae Export_TEST.lua    TERMINATE
 " Windows Terminal
     :update|!start /b wt     luae Export_LISTEN.lua  COLORED
-    :update|!start /b        luae Export_TEST.lua    TESTING
-    :update|!start /b        luae Export_TEST.lua    TERMINATING
+    :update|!start /b        luae Export_TEST.lua    STARTTEST
+    :update|!start /b        luae Export_TEST.lua    TERMINATE
 
 :e Export.lua
 :e Export_task.lua

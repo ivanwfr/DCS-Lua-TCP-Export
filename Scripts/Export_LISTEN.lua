@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220819:02h:57) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220821:23h:08) --
 --------------------------------------------------------------------------------
 
 local log_this       = true
@@ -360,9 +360,10 @@ function listen()
     local ip, port = server:getsockname()
 
     local msg = LF
-    ..". --------------------------------------------------------------"..LF
-    ..". -- Export_LISTEN.lua: .. LISTENING IP="..ip.." . port=".. port ..LF
-    ..". --------------------------------------------------------------"..LF
+    .."@ Export_LISTEN.lua:"                   ..LF
+    .."@ LISTENING IP="..ip.." . port=".. port ..LF
+    .."@ "..Export_log_time()                  ..LF
+
     print(LF..E..msg..N)
 
     if log_this then
@@ -403,9 +404,11 @@ function listen()
             ------------------------------------------------------------------------
             --{{{
             if  err then
-                local      msg = "xxx Export_LISTEN.lua: "..tostring(err)..LF
+                local msg = "xxx Export_LISTEN.lua:"  .. LF
+                ..          "xxx "..Export_log_time() .. LF
+                ..          "xxx "..tostring(err)
 
-                print(Y..  msg ..N)
+                print(O..  msg ..N)
 
                 if log_this then
                     Export_log_FOLD_CLOSE()
@@ -424,7 +427,7 @@ function listen()
 
                     local      msg = LF
                     .."xxx Export_LISTEN.lua ["..req .."]"
-                    .."TERMINATING LISTENER .... "
+                    .."TERMINATE LISTENER .... "
                     ..Export_log_time()..":"
 
                     print( R.. msg ..N)
@@ -569,12 +572,12 @@ listen()
 --[[ vim
     :only
     :update|vert terminal    luae Export_LISTEN.lua
-    :update|     terminal    luae Export_TEST.lua    TESTING
-    :update|     terminal    luae Export_TEST.lua    TERMINATING
+    :update|     terminal    luae Export_TEST.lua    STARTTEST
+    :update|     terminal    luae Export_TEST.lua    TERMINATE
 " Windows Terminal
     :update|!start /b wt     luae Export_LISTEN.lua  COLORED
-    :update|!start /b        luae Export_TEST.lua    TESTING
-    :update|!start /b        luae Export_TEST.lua    TERMINATING
+    :update|!start /b        luae Export_TEST.lua    STARTTEST
+    :update|!start /b        luae Export_TEST.lua    TERMINATE
 
 :e Export.lua
 :e Export_task.lua

@@ -4,7 +4,7 @@
 
 ### ✔ [ZIP archive on GitHub](../../archive/master.zip)
 
-### `README.md` _TAG (220821:18h:21)
+### `README.md` _TAG (220821:23h:17)
 
 #### Export_LISTEN output in a Microsoft Windows Terminal:
 ![Export_LISTEN.lua](/Screenshots/Animation.gif)
@@ -29,7 +29,6 @@
     |   `-- socket.lua
     |-- Export.lua
     |-- Export_LISTEN.lua
-    |-- Export_LISTEN_Windows_Terminal.lnk
     |-- Export_TEST.lua
     |-- Export_TEST_STUB.lua
     |-- Export_log.lua
@@ -37,8 +36,13 @@
     |-- Export_task.lua
     |-- check_JSON.lua
     |-- check_termios.lua
-    |-- desktop.ini
-    `-- wt.bat
+    |-- luae_2_STARTTEST.lnk
+    |-- luae_3_TERMINATE.lnk
+    |-- wt.bat
+    |-- wt_1_LISTEN.lnk
+    |-- wt_2_STARTTEST.lnk
+    `-- wt_3_TERMINATE.lnk
+
 ```
 #### Files functionalities
 

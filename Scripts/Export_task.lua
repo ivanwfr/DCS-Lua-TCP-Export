@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:18h:17) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:23h:13) --
 --------------------------------------------------------------------------------
 
 local ACTIVITY_INTERVAL    = 1.0 -- SET TO 0 TO DISABLE --FIXME
@@ -166,7 +166,7 @@ repeat
         Export_log ( msg )
         print      ( msg )
     end
---  socket_send    ( msg )--FIXME
+    socket_send    ( msg )
 
     ----------------------------------------
     -- {MTime, SeaAlt, GndAlt} -------------
@@ -357,12 +357,12 @@ end
 --[[ vim
     :only
     :update|vert terminal    luae Export_LISTEN.lua
-    :update|     terminal    luae Export_TEST.lua    TESTING
-    :update|     terminal    luae Export_TEST.lua    TERMINATING
+    :update|     terminal    luae Export_TEST.lua    STARTTEST
+    :update|     terminal    luae Export_TEST.lua    TERMINATE
 " Windows Terminal
     :update|!start /b wt     luae Export_LISTEN.lua  COLORED
-    :update|!start /b        luae Export_TEST.lua    TESTING
-    :update|!start /b        luae Export_TEST.lua    TERMINATING
+    :update|!start /b        luae Export_TEST.lua    STARTTEST
+    :update|!start /b        luae Export_TEST.lua    TERMINATE
 
 :e Export.lua
 "  Export_task.lua
