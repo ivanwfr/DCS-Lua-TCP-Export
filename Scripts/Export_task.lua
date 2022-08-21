@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220819:02h:57) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:18h:17) --
 --------------------------------------------------------------------------------
 
 local ACTIVITY_INTERVAL    = 1.0 -- SET TO 0 TO DISABLE --FIXME
 local ACTIVITY_START_DELAY = 0.0
---local log_this           = true
+---[[
+--local log_this             = true
+--]]
 
 print("@ LOADING Export_task.lua: arg[1]=[".. tostring(arg and arg[1]) .."]:")
 
@@ -79,8 +81,8 @@ function Export_task_Start() ----------------- CONNECT localhost:5001 -------{{{
     ----------------------------------------
     -- START SENDING STREAM AND EVENTS -----
     ----------------------------------------
-    local msg = "Export_task_Start .. socket_connect .. "..Export_log_time()..":"
     if log_this then
+        local msg = "Export_task_Start .. socket_connect .. "..Export_log_time()..":"
         Export_log( msg )
         print     ( msg )
     end
@@ -125,7 +127,7 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------- {{{
     if log_this then
         Export_log_FOLD_OPEN()
         Export_log( json )
---      print     ( json )
+        print     ( json )
         Export_log_FOLD_CLOSE()
     end
 
@@ -136,8 +138,8 @@ end
 --}}}
 function Export_task_Stop() ------------------ CLOSE SOCKET -----------------{{{
 
-    local msg = "Export_task_Stop ... socket_close .... "..Export_log_time()..":"
     if log_this then
+        local msg = "Export_task_Stop ... socket_close .... "..Export_log_time()..":"
         Export_log_FOLD_CLOSE()
         Export_log( msg )
         print     ( msg )
@@ -164,8 +166,7 @@ repeat
         Export_log ( msg )
         print      ( msg )
     end
-
-    socket_send    ( msg )
+--  socket_send    ( msg )--FIXME
 
     ----------------------------------------
     -- {MTime, SeaAlt, GndAlt} -------------
@@ -200,17 +201,21 @@ end
 -- Export_task_coroutine_start ---------------- STREAMING START --------------{{{
 function Export_task_coroutine_start()
 
-    local msg = "Export_task_coroutine_start"
+    -- LOG {{{
     if log_this then
+        local      msg = "Export_task_coroutine_start"
         Export_log(msg)
-        print(msg)
-    end
 
+        print     (msg)
+    end
+    --}}}
+    -- SETUP SAMPLE COROUTINES {{{
     Coroutines                  = {}
     CoroutineIndex              = 1
     Coroutines[CoroutineIndex]  = coroutine.create(Export_task_coroutine_handle)
 
     LoCreateCoroutineActivity(CoroutineIndex, ACTIVITY_START_DELAY, ACTIVITY_INTERVAL)
+    --}}}
 end
 --}}}
 

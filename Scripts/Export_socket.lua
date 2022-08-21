@@ -1,15 +1,17 @@
 --------------------------------------------------------------------------------
--- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220819:02h:57) --
+-- Export_socket.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220821:18h:15) --
 --------------------------------------------------------------------------------
 print("@ LOADING Export_socket.lua")
 
-local             PORT =  5002
-local             HOST = "localhost"
---local       log_this = true
---local SEND_TO_TARGET = true -- UNCOMMENT TO FORMAT MESSAGES FOR TARGET SCRIPT
+local           HOST = "localhost"
+local           PORT =  5002
+local    TARGET_PORT =  5001
+--[[--FIXME
+local SEND_TO_TARGET = true
+--local     log_this = true
+--]]
 
--- Export_log.lua
---{{{
+-- ENVIRONMENT {{{
 local  script_dir  = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
 dofile(script_dir.."/Export_log.lua"   )
 
@@ -19,10 +21,25 @@ local LF = "\n"
 
 --}}}
 
+-- FUNCTIONS {{{
+
+----- PUBLIC
+----- get_Export_socket
+----- get_SEND_TO_TARGET
+----- socket_close
+----- socket_connect
+----- socket_send
+
+----- PRIVATE
+local get_TARGET_PREFIX
+local socket_send_to_TARGET
+
+--}}}
+
 --------------------------------------------------------------------------------
--- CONNECT CLIENT SOCKET -------------------------------------------------------
+-- CLIENT SOCKET CONNECT .. CLOSE ----------------------------------------------
 --------------------------------------------------------------------------------
--- lib/socket.lua {{{
+-- ENVIRONMENT {{{
 if not socket then
     local  script_dir = string.gsub(os.getenv("USERPROFILE").."/Saved Games/DCS/Scripts", "\\", "/")
     dofile(script_dir.."/lib/socket.lua")
@@ -31,57 +48,78 @@ end
 --}}}
 -- socket_connect {{{
 function socket_connect()
-    local msg = "  TCP CLIENT SOCKET CONNECT"
+    -- log {{{
+    local msg
+    = "  TCP CLIENT SOCKET CONNECT"
+    ..(SEND_TO_TARGET and "SEND_TO_TARGET" or "")
+
     if log_this then
         Export_log(msg)
-        print("socket_connect:"..LF..msg)
+        print( LF..msg)
     end
-
-    c, err = socket.connect(HOST, PORT)
+    --}}}
+    local port = SEND_TO_TARGET and TARGET_PORT or PORT
+    c, err     = socket.connect(HOST, port)
+    -- Handle Error {{{
     if err then
-        msg = "*** Export_socket .. socket.connect("..HOST.." , "..PORT..") .. err=["..err.."]"
+        local msg = "*** Export_socket .. socket.connect("..HOST.." , "..port..") .. err=["..err.."]"
         if log_this then
             Export_log(msg)
-            print("socket_connect:"..LF..msg)
         end
+        print(     LF..msg)
     end
-
+    --}}}
+    -- Socket option {{{
     if   c then c:setoption("tcp-nodelay", true) end
 
+    --}}}
     return c
+end
+--}}}
+-- socket_close {{{
+function socket_close()
+    if  c then
+        c:close()
+        c = nil
+    end
 end
 --}}}
 
 --------------------------------------------------------------------------------
--- CLIENT REQUEST LOOP ---------------------------------------------------------
+-- CLIENT SOCKET SEND REQUEST --------------------------------------------------
 --------------------------------------------------------------------------------
 -- socket_send {{{
 function socket_send(msg)
 
+    -- NOT CONNECTED {{{
     if not c then
         local msg = "*** Export_socket .. socket_send .. [NOT CONNECTED]"
         if log_this then
             Export_log(msg)
-            print("socket_send:"..LF..msg)
         end
+        print( LF..msg)
 
         return
     end
+    --}}}
 
-    if not SEND_TO_TARGET then
-        --cket.try(      c:send(msg.."\n") )
+    if         SEND_TO_TARGET then
+        socket_send_to_TARGET( msg )
+    else
+        -- Send Message {{{
         local cnt, err = c:send(msg.."\n")
+        --}}}
+        -- Handle Error {{{
         if err then
             local msg = "*** socket_send: cnt=["..tostring(cnt).."] , err=["..tostring(err).."]"
             if log_this then
                 Export_log(msg)
-                print("socket_send:"..LF..msg)
             end
+            print( LF..msg)
 
             c = nil
         end
-    else
-        socket_send_to_TARGET( msg )
+        --}}}
     end
 
 end
@@ -96,22 +134,36 @@ function socket_send_to_TARGET(msg)
 --       ( 2 + size of data that will follow)
 --}}}
 
-    local len = 2+string.len( msg )
+    msg = "JSON="..msg
+
+    local len = string.len( msg )
+print("socket_send_to_TARGET(msg len="..len..") :"..LF..msg)
+
     while len > 0 and c do
-        local bln = math.min(255,len)
-        local buf = string.char(bln,0)..msg
-        --cket.try(      c:send(buf) )
+        -- Send Message {{{
+
+        local bln
+        = string.len( msg )
+
+        local buf
+        =  get_TARGET_PREFIX(msg)
+        .. msg
+
         local cnt, err = c:send(buf)
+
+        --}}}
+        -- Handle Error {{{
         if err then
             local msg = "*** socket_send_to_TARGET: cnt=["..tostring(cnt).."] , err=["..tostring(err).."]"
             if log_this then
                 Export_log(msg)
-                print("socket_send_to_TARGET:"..LF..msg)
             end
+            print( LF..msg)
 
             c = nil
         end
-        len = len -bln
+        --}}}
+        len = len - bln
     end
 
 end
@@ -122,16 +174,23 @@ function get_Export_socket()
     return c
 end
 --}}}
+-- get_SEND_TO_TARGET {{{
+function get_SEND_TO_TARGET()
 
---------------------------------------------------------------------------------
--- CLOSE CLIENT ----------------------------------------------------------------
---------------------------------------------------------------------------------
--- socket_close {{{
-function socket_close()
-    if  c then
-        c:close()
-        c = nil
-    end
+    return SEND_TO_TARGET
+end
+--}}}
+-- get_TARGET_PREFIX {{{
+function get_TARGET_PREFIX(msg)
+
+    local len = 2+string.len(msg)
+    local bl1 =  len       % 256
+    local bl2 = (len -bl1) / 256
+    local pfx = string.char(bl1,bl2)
+
+--print("msg=[".. tostring( msg ) .."]")--FIXME
+--print("pfx=[".. tostring( pfx ) .."]")--FIXME
+    return pfx
 end
 --}}}
 

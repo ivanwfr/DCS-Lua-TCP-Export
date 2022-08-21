@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220819:02h:57) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:18h:17) --
 --------------------------------------------------------------------------------
 print("@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
@@ -151,9 +151,14 @@ if TESTING then
     local  c = get_Export_socket()
     if not c then return 1 end
 
-    for i=1, EVENT_COUNT do
-        LuaExportActivityNextEvent(i)
-        sleep(EVENT_INTERVAL)
+    if get_SEND_TO_TARGET()      then
+        local  msg = "@ SEND_TO_TARGET IS SET .. NOT CALLING LuaExportActivityNextEvent:"
+        print( msg )
+    else
+        for i=1, EVENT_COUNT do
+            LuaExportActivityNextEvent(i)
+            sleep(EVENT_INTERVAL)
+        end
     end
 
     LuaExportStop()
