@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220821:23h:08) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220822:15h:30) --
 --------------------------------------------------------------------------------
 
 local log_this       = true
@@ -12,27 +12,34 @@ local HOST           = "*"
 local LF             = "\n"
 
 --[[
-:!start /b explorer "https://en.wikipedia.org/wiki/Electronic_color_code"
 :!start /b explorer "https://en.wikipedia.org/wiki/ANSI_escape_code"
+:!start /b explorer "https://en.wikipedia.org/wiki/Electronic_color_code"
 :e $LOCALAPPDATA/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json 
 --]]
 
-local   ESC   = tostring(string.char(27))
-local CLEAR   = COLORED and (ESC.."c"          .. ESC.."c"          ) or LF.."CLEAR" ------ TERMINAL
----------------------------------- BACKGROUND ......... FOREGROUND ---------------------------------
---cal     N   = COLORED and (ESC.."[38;5;255m"..ESC.."[48;5;232m") or "" -- 0 --   WHITE on BLACK
-local     N   = COLORED and (ESC.."[38;5;254m"..ESC.."[48;5;234m") or "" -- 0 --   LIGHT on DARK
-local     B   = COLORED and (ESC.."[38;5;94m" ..ESC.."[48;5;232m") or "" -- 1 --   BROWN on BLACK
-local     R   = COLORED and (ESC.."[38;5;196m"..ESC.."[48;5;232m") or "" -- 2 --     RED on BLACK
-local     O   = COLORED and (ESC.."[38;5;214m"..ESC.."[48;5;232m") or "" -- 3 --  ORANGE on BLACK
-local     Y   = COLORED and (ESC.."[38;5;226m"..ESC.."[48;5;232m") or "" -- 4 --  YELLOW on BLACK
-local     G   = COLORED and (ESC.."[38;5;28m" ..ESC.."[48;5;232m") or "" -- 5 --   GREEN on BLACK
-local     L   = COLORED and (ESC.."[38;5;45m" ..ESC.."[48;5;232m") or "" -- 6 --    BLUE on BLACK
-local     M   = COLORED and (ESC.."[38;5;129m"..ESC.."[48;5;232m") or "" -- 7 -- MAGENTA on BLACK
-local     E   = COLORED and (ESC.."[38;5;244m"..ESC.."[48;5;232m") or "" -- 8 --    GREY on BLACK
-local     W   = COLORED and (ESC.."[38;5;255m"..ESC.."[48;5;232m") or "" -- 9 --   WHITE on BLACK
+local ESC     = tostring(string.char(27))
+local CSI     = ESC..'[' -- (Control Sequence Introducer)
 
-print(CLEAR..N.."-N-"..B.."-B-"..R.."-R-"..O.."-O-"..Y.."-Y-"..G.."-G-"..L.."-L-"..M.."-M-"..R.."-R-"..W.."-W-"..N)
+----------------------------------------------------------------------------------------------------
+local CLEAR   = COLORED and (ESC.."c"   ) or LF.."CLEAR"
+local NPAGE   = COLORED and (CSI..'1;1H') or LF.."----------------------------------------"
+----------------------------------------------------------------------------------------------------
+local  SGR    = COLORED and (CSI..'0m'  ) or "" -- (Select Graphic Rendition) (Reset or normal)
+local  SGRI   = COLORED and (CSI..'3m'  ) or "" -- (Select Graphic Rendition) (italic)
+---------------------------------- BACKGROUND ......... FOREGROUND ---------------------------------
+--cal     N   = COLORED and (CSI.."38;5;255m"..CSI.."48;5;232m") or "" -- 0 --   WHITE on BLACK
+local     N   = COLORED and (CSI.."38;5;254m"..CSI.."48;5;234m") or "" -- 0 --   LIGHT on DARK
+local     B   = COLORED and (CSI.."38;5;94m" ..CSI.."48;5;232m") or "" -- 1 --   BROWN on BLACK
+local     R   = COLORED and (CSI.."38;5;196m"..CSI.."48;5;232m") or "" -- 2 --     RED on BLACK
+local     O   = COLORED and (CSI.."38;5;214m"..CSI.."48;5;232m") or "" -- 3 --  ORANGE on BLACK
+local     Y   = COLORED and (CSI.."38;5;226m"..CSI.."48;5;232m") or "" -- 4 --  YELLOW on BLACK
+local     G   = COLORED and (CSI.."38;5;28m" ..CSI.."48;5;232m") or "" -- 5 --   GREEN on BLACK
+local     L   = COLORED and (CSI.."38;5;45m" ..CSI.."48;5;232m") or "" -- 6 --    BLUE on BLACK
+local     M   = COLORED and (CSI.."38;5;129m"..CSI.."48;5;232m") or "" -- 7 -- MAGENTA on BLACK
+local     E   = COLORED and (CSI.."38;5;244m"..CSI.."48;5;232m") or "" -- 8 --    GREY on BLACK
+local     W   = COLORED and (CSI.."38;5;255m"..CSI.."48;5;232m") or "" -- 9 --   WHITE on BLACK
+
+print(NPAGE..N.."-N-"..B.."-B-"..R.."-R-"..O.."-O-"..Y.."-Y-"..G.."-G-"..L.."-L-"..M.."-M-"..R.."-R-"..W.."-W-"..N)
 --}}}
 print(   E..LF.."@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]:"..N)
 
@@ -379,10 +386,11 @@ function listen()
         local client = server:accept() -- SERVER SOCKET: ACCEPT CONNECTION
 
         if log_this then
-            local      msg = ""
-            ..". Export_LISTEN.lua .. socket_accept .. "..Export_log_time()..":"
+            local msg = ""
+            .. ">>> Export_LISTEN.lua .. socket_accept .. "
+            .. Export_log_time()..":"
 
-            print(Y..  msg ..N)
+            print(CLEAR..E..SGRI.. msg ..SGR..N)
 
             Export_log(msg)
         end
@@ -404,11 +412,11 @@ function listen()
             ------------------------------------------------------------------------
             --{{{
             if  err then
-                local msg = "xxx Export_LISTEN.lua:"  .. LF
-                ..          "xxx "..Export_log_time() .. LF
-                ..          "xxx "..tostring(err)
+                local msg = ""
+                .. "<<< Export_LISTEN.lua .. "..tostring(err).." .. "
+                .. Export_log_time()..":"
 
-                print(O..  msg ..N)
+                print(E..SGRI.. msg ..SGR..N)
 
                 if log_this then
                     Export_log_FOLD_CLOSE()
@@ -509,9 +517,9 @@ function handle_request( req )
             -- DISPLAY -------------------------------------
             ------------------------------------------------
             if COLORED then
-                print(CLEAR..                   grid_str)
+                print(NPAGE..                   grid_str)
             else
-                print(CLEAR.." "..req_type..LF..grid_str)
+                print(NPAGE.." "..req_type..LF..grid_str)
             end
 
             if log_this then Export_log_FOLD_CLOSE() end
