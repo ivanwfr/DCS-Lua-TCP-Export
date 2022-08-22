@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:22h:33) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220822:20h:32) --
 --------------------------------------------------------------------------------
 print("@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
@@ -21,6 +21,10 @@ print("@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 ----------------------------
 --- UTIL -------------------
 ----------------------------
+--{{{
+local LF = string.char(10)
+
+--}}}
 -- DeepCopy {{{
 local function DeepCopy(orig)
     local orig_type = type(orig)
@@ -166,6 +170,9 @@ if STARTTEST then
     print("-------------------------------------------------------------------")
     print("xxx Export_TEST.lua ["..(arg[1] and arg[1] or " ").."] done"        )
     print("-------------------------------------------------------------------")
+
+    --sleep(2)
+    io.write(LF.."> "); io.read (1)
 end
 --}}}
 
@@ -188,7 +195,8 @@ if TERMINATE then
 
     print("# ...done")
 
-    sleep(2)
+    --sleep(2)
+    io.write(LF.."> "); io.read (1)
 end
 --}}}
 
