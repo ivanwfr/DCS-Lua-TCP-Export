@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
--- check_JSON.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220814:14h:58) --
+-- check_JSON.lua ------ in [Saved Games/DCS/Scripts] -- _TAG (220823:15h:18) --
 --------------------------------------------------------------------------------
-print("@LOADING "..arg[0]..":")
+print("@ LOADING "..arg[0]..":")
 
 --[[
 :e C:/LOCAL/DATA/GAMES/DCS_World/Scripts/JSON.lua

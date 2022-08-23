@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220822:20h:27) --
+-- Export_task.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220821:23h:13) --
 --------------------------------------------------------------------------------
 
 local ACTIVITY_INTERVAL    = 1.0 -- SET TO 0 TO DISABLE --FIXME
@@ -76,16 +76,16 @@ local LF              = "\n"
 -- EXPORT CYCLE ------------------------------------------ (public functions) --
 --------------------------------------------------------------------------------
 function Export_task_Start() ----------------- CONNECT localhost:5001 -------{{{
-    print("@ Export_task_Start")
+    print(". Export_task_Start")
 
     ----------------------------------------
     -- START SENDING STREAM AND EVENTS -----
     ----------------------------------------
-    local          msg = "Export_task_Start .. socket_connect .. "..Export_log_time()..":"
     if log_this then
-        Export_log(msg)
+        local msg = "Export_task_Start .. socket_connect .. "..Export_log_time()..":"
+        Export_log( msg )
+        print     ( msg )
     end
-    print   (".."..msg)
 
     local c = socket_connect()
 
@@ -108,12 +108,13 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------- {{{
     ----------------------------------------
     -- SEND EVENT OBJECTS ------------------
     ----------------------------------------
-    local          req = "Export_task_ActivityNextEvent("..t.."):"
-    if log_this then
-        Export_log(req)
-    end
-    print   (".."..req)
-    socket_send   (req)
+    local msg = "Export_task_ActivityNextEvent("..t.."):"
+--  if log_this then
+        Export_log( msg )
+        print     ( msg )
+--  end
+
+    socket_send   ( msg )
 
     ----------------------------------------
     -- grid_cells {k, v, row,col} ----------
@@ -126,22 +127,23 @@ function Export_task_ActivityNextEvent(t) ---- SEND  LoGetSelfData --------- {{{
     if log_this then
         Export_log_FOLD_OPEN()
         Export_log( json )
+        print     ( json )
         Export_log_FOLD_CLOSE()
     end
---  print      (json)
-    socket_send(json)
+
+    socket_send   ( json )
 
     return  t+1 -- so as to be called again
 end
 --}}}
 function Export_task_Stop() ------------------ CLOSE SOCKET -----------------{{{
 
-    local          msg = "Export_task_Stop ... socket_close .... "..Export_log_time()..":"
     if log_this then
+        local msg = "Export_task_Stop ... socket_close .... "..Export_log_time()..":"
         Export_log_FOLD_CLOSE()
-        Export_log(msg)
+        Export_log( msg )
+        print     ( msg )
     end
-    print   (".."..msg)
 
     socket_close()
 
@@ -159,24 +161,25 @@ repeat
     ----------------------------------------
     -- SEND STREAM DATA --------------------
     ----------------------------------------
-    local          req = "Export_task_coroutine_handle("..t.."):"
+    local      msg = "Export_task_coroutine_handle("..t.."):"
     if log_this then
-        Export_log(req)
+        Export_log ( msg )
+        print      ( msg )
     end
-    print         (".."..req)
-    socket_send   (req)
+    socket_send    ( msg )
 
     ----------------------------------------
     -- {MTime, SeaAlt, GndAlt} -------------
     ----------------------------------------
-    local       json = get_time_and_altitude()
+    local json     = get_time_and_altitude()
     if log_this then
         Export_log_FOLD_OPEN()
-        Export_log (json)
+        Export_log ( json )
+--      print      ( json )
         Export_log_FOLD_CLOSE()
     end
---  print      (json)
-    socket_send(json)
+
+    socket_send    ( json )
 
     ----------------------------------------
     -- next call ---------------------------
@@ -199,11 +202,12 @@ end
 function Export_task_coroutine_start()
 
     -- LOG {{{
-    local          msg = "Export_task_coroutine_start"
     if log_this then
+        local      msg = "Export_task_coroutine_start"
         Export_log(msg)
+
+        print     (msg)
     end
-    print   (".."..msg)
     --}}}
     -- SETUP SAMPLE COROUTINES {{{
     Coroutines                  = {}
@@ -277,12 +281,12 @@ function build_GRID_ROW_COL_TABLE()
 
 
     if log_this then
-        local      msg = "build_GRID_ROW_COL_TABLE:"
-        ..LF..           "[GRID_ROW_COL_TEXT ]: contains "..#rows.." lines of text"
-        ..LF..           "[GRID_ROW_COL_TABLE]:"
+        local msg = "build_GRID_ROW_COL_TABLE:"
+        ..LF..      "[GRID_ROW_COL_TEXT ]: contains "..#rows.." lines of text"
+        ..LF..      "[GRID_ROW_COL_TABLE]:"
         ..LF.. JSON:encode( GRID_ROW_COL_TABLE ):gsub("{\n",""):gsub("},","}\n,")
-        Export_log(msg)
-        print     (msg)
+        Export_log( msg )
+        print     ( msg )
     end
     print("@ USING "..table_len( GRID_ROW_COL_TABLE ).." CELLS in [GRID_ROW_COL_TABLE] ")
 end

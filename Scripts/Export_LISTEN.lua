@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220822:15h:30) --
+-- Export_LISTEN.lua --- in [Saved Games/DCS/Scripts] -- _TAG (220823:16h:35) --
 --------------------------------------------------------------------------------
 
 local log_this       = true
@@ -10,38 +10,49 @@ local HOST           = "*"
 
 -- TERMIOS {{{
 local LF             = "\n"
-
 --[[
 :!start /b explorer "https://en.wikipedia.org/wiki/ANSI_escape_code"
 :!start /b explorer "https://en.wikipedia.org/wiki/Electronic_color_code"
 :e $LOCALAPPDATA/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json 
 --]]
-
 local ESC     = tostring(string.char(27))
 local CSI     = ESC..'[' -- (Control Sequence Introducer)
-
 ----------------------------------------------------------------------------------------------------
 local CLEAR   = COLORED and (ESC.."c"   ) or LF.."CLEAR"
 local NPAGE   = COLORED and (CSI..'1;1H') or LF.."----------------------------------------"
 ----------------------------------------------------------------------------------------------------
-local  SGR    = COLORED and (CSI..'0m'  ) or "" -- (Select Graphic Rendition) (Reset or normal)
-local  SGRI   = COLORED and (CSI..'3m'  ) or "" -- (Select Graphic Rendition) (italic)
+local SGR     = COLORED and (CSI..'0m'  ) or "" -- (Select Graphic Rendition) (Reset or normal)
+local SGRI    = COLORED and (CSI..'3m'  ) or "" -- (Select Graphic Rendition) (italic)
+-- ECC (Electronic Color Code) ---------------------------------------------------------------------
+--{{{
 ---------------------------------- BACKGROUND ......... FOREGROUND ---------------------------------
---cal     N   = COLORED and (CSI.."38;5;255m"..CSI.."48;5;232m") or "" -- 0 --   WHITE on BLACK
-local     N   = COLORED and (CSI.."38;5;254m"..CSI.."48;5;234m") or "" -- 0 --   LIGHT on DARK
-local     B   = COLORED and (CSI.."38;5;94m" ..CSI.."48;5;232m") or "" -- 1 --   BROWN on BLACK
-local     R   = COLORED and (CSI.."38;5;196m"..CSI.."48;5;232m") or "" -- 2 --     RED on BLACK
-local     O   = COLORED and (CSI.."38;5;214m"..CSI.."48;5;232m") or "" -- 3 --  ORANGE on BLACK
-local     Y   = COLORED and (CSI.."38;5;226m"..CSI.."48;5;232m") or "" -- 4 --  YELLOW on BLACK
-local     G   = COLORED and (CSI.."38;5;28m" ..CSI.."48;5;232m") or "" -- 5 --   GREEN on BLACK
-local     L   = COLORED and (CSI.."38;5;45m" ..CSI.."48;5;232m") or "" -- 6 --    BLUE on BLACK
-local     M   = COLORED and (CSI.."38;5;129m"..CSI.."48;5;232m") or "" -- 7 -- MAGENTA on BLACK
-local     E   = COLORED and (CSI.."38;5;244m"..CSI.."48;5;232m") or "" -- 8 --    GREY on BLACK
-local     W   = COLORED and (CSI.."38;5;255m"..CSI.."48;5;232m") or "" -- 9 --   WHITE on BLACK
+--cal c0      = COLORED and (CSI.."38;5;255m"..CSI.."48;5;232m") or "" -- 0 --   WHITE on BLACK
+local c0      = COLORED and (CSI.."38;5;254m"..CSI.."48;5;234m") or "" -- 0 --   LIGHT on DARK
+local c1      = COLORED and (CSI.."38;5;94m" ..CSI.."48;5;232m") or "" -- 1 --   BROWN on BLACK
+local c2      = COLORED and (CSI.."38;5;196m"..CSI.."48;5;232m") or "" -- 2 --     RED on BLACK
+local c3      = COLORED and (CSI.."38;5;214m"..CSI.."48;5;232m") or "" -- 3 --  ORANGE on BLACK
+local c4      = COLORED and (CSI.."38;5;226m"..CSI.."48;5;232m") or "" -- 4 --  YELLOW on BLACK
+local c5      = COLORED and (CSI.."38;5;28m" ..CSI.."48;5;232m") or "" -- 5 --   GREEN on BLACK
+local c6      = COLORED and (CSI.."38;5;45m" ..CSI.."48;5;232m") or "" -- 6 --    BLUE on BLACK
+local c7      = COLORED and (CSI.."38;5;129m"..CSI.."48;5;232m") or "" -- 7 -- MAGENTA on BLACK
+local c8      = COLORED and (CSI.."38;5;244m"..CSI.."48;5;232m") or "" -- 8 --    GREY on BLACK
+local c9      = COLORED and (CSI.."38;5;255m"..CSI.."48;5;232m") or "" -- 9 --   WHITE on BLACK
 
-print(NPAGE..N.."-N-"..B.."-B-"..R.."-R-"..O.."-O-"..Y.."-Y-"..G.."-G-"..L.."-L-"..M.."-M-"..R.."-R-"..W.."-W-"..N)
+local N       = c0
+local B       = c1
+local R       = c2
+local O       = c3
+local Y       = c4
+local G       = c5
+local L       = c6
+local M       = c7
+local E       = c8
+local W       = c9
+
 --}}}
-print(   E..LF.."@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]:"..N)
+print(NPAGE..N.."-N-"..B.."-B-"..R.."-R-"..O.."-O-"..Y.."-Y-"..G.."-G-"..L.."-L-"..M.."-M-"..R.."-R-"..W.."-W-"..N..LF)
+--}}}
+print("@ LOADING Export_LISTEN.lua: arg[1]=[".. tostring(arg and arg[1]) .."]:"..N)
 
 local QUIT           = "quit"
 local GRID_COL_MAX   = 3
@@ -387,8 +398,10 @@ function listen()
 
         if log_this then
             local msg = ""
-            .. ">>> Export_LISTEN.lua .. socket_accept .. "
-            .. Export_log_time()..":"
+            .. "@ Export_LISTEN.lua"
+            .. " .. socket_accept"
+            .. " .. "..Export_log_time()
+            .. ":"
 
             print(CLEAR..E..SGRI.. msg ..SGR..N)
 
@@ -408,13 +421,14 @@ function listen()
             buf,err = client:receive()
 
             ------------------------------------------------------------------------
-            -- HANDLE SOCKET ERROR -------------------------------------------------
+            -- HANDLE SOCKET ERROR (closed) ----------------------------------------
             ------------------------------------------------------------------------
             --{{{
             if  err then
                 local msg = ""
-                .. "<<< Export_LISTEN.lua .. "..tostring(err).." .. "
-                .. Export_log_time()..":"
+                .. "@ Export_LISTEN.lua .. "..tostring(err)
+                .. " .. "..Export_log_time()
+                .. ":"
 
                 print(E..SGRI.. msg ..SGR..N)
 
@@ -433,10 +447,11 @@ function listen()
 
                 if req == QUIT then
 
-                    local      msg = LF
-                    .."xxx Export_LISTEN.lua ["..req .."]"
-                    .."TERMINATE LISTENER .... "
-                    ..Export_log_time()..":"
+                    local      msg = ""
+                    .."@ Export_LISTEN.lua ["..req .."]"
+                    .." .. TERMINATE"
+                    .." .. "..Export_log_time()
+                    ..":"
 
                     print( R.. msg ..N)
 
@@ -533,14 +548,14 @@ end
 local sleep
 
 function listen_done_close_socket_and_log_file(ip,port)
-    if log_this then
-        local msg = LF
-        ..". --------------------------------------------------------------"..LF
-        ..". -- Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port ..LF
-        ..". --------------------------------------------------------------"..LF
-        Export_log(  msg   )
-        print(    E..msg..N)
 
+    local msg = ""
+    .."@ Export_LISTEN.lua: .. CLOSING   IP="..ip.." . port=".. port
+
+    print(    E..msg..N)
+
+    if log_this then
+        Export_log(  msg   )
         Export_log_close()
     end
 
@@ -549,7 +564,8 @@ function listen_done_close_socket_and_log_file(ip,port)
         client = nil
     end
 
-    sleep(2)
+    sleep(2)                        --      delay before closing terminal
+  --io.write(LF.."> "); io.read (1) -- user input before closing terminal
 end
 --}}}
 

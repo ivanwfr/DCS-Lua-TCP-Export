@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220822:20h:32) --
+-- Export_TEST.lua ----- in [Saved Games/DCS/Scripts] -- _TAG (220823:16h:33) --
 --------------------------------------------------------------------------------
 print("@ LOADING Export_TEST.lua: arg[1]=[".. tostring(arg and arg[1]) .."]")
 
@@ -171,8 +171,8 @@ if STARTTEST then
     print("xxx Export_TEST.lua ["..(arg[1] and arg[1] or " ").."] done"        )
     print("-------------------------------------------------------------------")
 
-    --sleep(2)
-    io.write(LF.."> "); io.read (1)
+    sleep(2)
+  --io.write(LF.."> "); io.read (1)
 end
 --}}}
 
@@ -195,8 +195,8 @@ if TERMINATE then
 
     print("# ...done")
 
-    --sleep(2)
-    io.write(LF.."> "); io.read (1)
+    sleep(2)
+  --io.write(LF.."> "); io.read (1)
 end
 --}}}
 
